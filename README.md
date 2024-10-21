@@ -1,5 +1,18 @@
 # Networks-Project2
 
+## Contributors
+
+- Owen Edwards
+- Elias Weitfle
+- Viet Ton
+
+## Add Later
+
+> The README should contain instructions on how to compile and run your server/client programs (if certain
+software or packages need to be installed, provide instructions as well), usability instructions ONLY if different
+from suggested above, and a description of any major issues you came across and how you handled them (or
+why you could not handle them).
+
 ## Project Structure
 
 ### frontend

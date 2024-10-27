@@ -23,7 +23,7 @@ def handle_client(client_socket, bulletin_board):
 
             # Handle the different commands the client can send.
             if command == '%%connect':
-                # Connect command expected two parameters: address and port
+                # Connect command expected two parameters: address and port.
                 if len(params) == 2:
                     response = "Connected to the bulletin board server."
                 else:

@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 import threading
 from socket_server import start_server
@@ -9,7 +10,9 @@ def index():
     return "Welcome to the Bulletin Board System!"
 
 def run_socket_server():
-    start_server('localhost', 12345)
+    host = os.getenv("SOCKET_SERVER_HOST", "localhost")
+    port = int(os.getenv("SOCKET_SERVER_PORT", 12345))
+    start_server(host, port)
 
 if __name__ == "__main__":
     # Start the socket server in a separate thread

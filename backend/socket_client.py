@@ -32,22 +32,29 @@ def send_command(client_socket, command, *params):
 
 def receive_response(client_socket):
     """
-    Receives and handles responses from the server, parsing bulletin messages when appropriate.
+    Receives and handles responses from the server.
+    If the response is a bulletin message (i.e., from a %post command), it parses and formats it accordingly.
     """
     # Receive a response from the server (up to 1024 bytes) and decode it to a UTF-8 string.
     response = client_socket.recv(1024).decode('utf-8')
     print(f"Raw Response: {response}")
 
-    # Attempt to parse as a bulletin message if it appears to match that format.
-    parsed_message = parse_bulletin_message(response)
-    if parsed_message:
-        # If successfully parsed, print each part of the bulletin message with labeled output.
-        print("Parsed Bulletin Message:")
-        for key, value in parsed_message.items():
-            print(f"{key}: {value}")
+    # Check if the response is a bulletin message based on the expected format.
+    if response.startswith('%post '):
+        parsed_message = parse_bulletin_message(response)
+        if parsed_message:
+            # If successfully parsed, print each part of the bulletin message with labeled output.
+            print("Parsed Bulletin Message:")
+            for key, value in parsed_message.items():
+                print(f"{key}: {value}")
+        else:
+            print("Failed to parse bulletin message.")
     else:
         # If it's not a bulletin message, print as a regular response.
         print("Response:", response)
+
+    # Return the response for further assertions in tests.
+    return response
 
 def parse_command(command, client_socket):
     """
@@ -159,7 +166,7 @@ def parse_command(command, client_socket):
 
 def main():
     host = 'localhost'  # Replace with server's IP if needed.
-    port = 12345  # Replace with server's port.
+    port = 5000  # Replace with server's port.
 
     # Connect to the server.
     client_socket = connect_to_server(host, port)

@@ -28,10 +28,16 @@ why you could not handle them).
 
 ### backend
 
-- `/tests/test_protocol.py`: Test cases for validating the message protocol.
 - `app.py`: Flask server. Handles API requests, e.g., communication with frontend.
 - `bulletin_board.py`: Core logic for the bulletin board system. Handles the structure of groups, messages, and user management within the application. This script interacts with the socket server to manage user activities.
 - `socket_client.py`: Client application for connecting to the bulletin board server. Handles user input, sends commands, and processes responses from the server.
 - `requirements.txt`: List of dependencies for Flask and other Python packages.
 - `socket_protocol.py`: Defines the message protocol for communication between the client and the server. This handles message formatting and parsing.
 - `socket_server.py`: Manages the socket server setup, including binding the socket to a host and port, accepting connections, and dispatching messages between clients and the `bulletin_board.py`.
+
+#### backend/tests
+
+- `test_bulletin_board.py`: Test cases for validating bulletin board system logic.
+- `test_socket_client.py`: Test cases for validating the client application.
+- `test_socket_protocol.py`: Test cases for validating the message protocol.
+- `test_socket_server.py`: Test cases for validating the server application.

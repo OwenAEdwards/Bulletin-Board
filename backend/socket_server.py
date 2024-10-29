@@ -16,10 +16,13 @@ def handle_client(client_socket, bulletin_board):
 
             # If no message is received, the client has disconnected.
             if not message:
+                print("Client disconnected.")
                 break
 
             # Parse the command and parameters from the client's message.
+            print(f"Raw message received: {message}")  # Debugging info.
             command, params = parse_client_command(message)
+            print(f"Command: {command}, Params: {params}")  # Debugging line
 
             # Handle the different commands the client can send.
             if command == '%%connect':
@@ -27,13 +30,14 @@ def handle_client(client_socket, bulletin_board):
                 if len(params) == 2:
                     response = "Connected to the bulletin board server."
                 else:
-                    response = "Error: %connect requires address and port."
+                    response = "Error: %%connect requires address and port."
                 client_socket.send(response.encode('utf-8'))
 
             elif command == '%join':
                 # Join command expects one parameter: the username.
                 if len(params) == 1:
                     username = params[0]
+                    print("Calling add_user with:", username)
                     # Add the user to the bulletin board.
                     bulletin_board.add_user(username)
                     response = f"{username} has joined the bulletin board."
@@ -47,8 +51,9 @@ def handle_client(client_socket, bulletin_board):
                 if len(params) >= 3:
                     sender = params[0]
                     post_date = params[1]
-                    # The subject may contain commas, so we join all remaining parameters.
-                    subject = ",".join(params[2:])
+                    # The subject is everything after the first two parameters.
+                    subject = " ".join(params[2:])  # Change to join with space instead of comma
+                    print(f"Calling add_post with: sender={sender}, post_date={post_date}, subject={subject}")
                     # Generate a unique message ID and add the post to the bulletin board.
                     message_id = bulletin_board.add_post(sender, post_date, subject)
                     # Format the message to store on the bulletin board.
@@ -179,10 +184,16 @@ def handle_client(client_socket, bulletin_board):
                 response = "Unknown command."
                 client_socket.send(response.encode('utf-8'))
     
+    except ValueError as ve:
+        print(f"ValueError encountered: {ve}")
+        response = "Error: Invalid parameters."
+        client_socket.send(response.encode('utf-8'))
+    except socket.error as se:
+        print(f"Socket error: {se}")
+        response = "Error: Socket communication failure."
+        client_socket.send(response.encode('utf-8'))
     except Exception as e:
-        # Print an error message if an exception occurs while handling the client.
-        # This helps in identifying issues during client communication or command processing.
-        print(f"Error handling client: {e}")
+        print(f"Unexpected error handling client: {e}")
     finally:
         # Ensure the client socket is closed, whether or not an error occurred.
         # This releases resources associated with the client connection.
@@ -219,3 +230,6 @@ def start_server(host, port):
 
         # Start the client handler thread.
         client_handler_thread.start()
+
+if __name__ == "__main__":
+    start_server('127.0.0.1', 5000)  # or 'localhost'

@@ -15,10 +15,10 @@ class TestSocketProtocol(unittest.TestCase):
 
     def test_format_client_command(self):
         """Test formatting a client command."""
-        command = "%%connect"
+        command = "%connect"
         params = ("Hello", "World")
         formatted_command = format_client_command(command, *params)
-        expected_command = "%%connect Hello World"
+        expected_command = "%connect Hello World"
         self.assertEqual(formatted_command, expected_command)
 
     def test_parse_client_command_with_params(self):
@@ -30,9 +30,9 @@ class TestSocketProtocol(unittest.TestCase):
 
     def test_parse_client_command_with_no_params(self):
         """Test parsing a client command with no parameters."""
-        message = "%%connect"
+        message = "%connect"
         command, params = parse_client_command(message)
-        self.assertEqual(command, "%%connect")
+        self.assertEqual(command, "%connect")
         self.assertEqual(params, [])
 
     def test_parse_bulletin_message(self):

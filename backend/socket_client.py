@@ -24,47 +24,74 @@ def send_command(client_socket, command, *params):
     # Format the command and parameters into a single string, using format_client_command.
     formatted_command = format_client_command(command, *params)
 
-    # Encode the formatted command as a UTF-8 byte string and send it through the socket.
-    client_socket.send(formatted_command.encode('utf-8'))
+    # Send only if formatted_command is not empty
+    if formatted_command:
+        # Encode the formatted command as a UTF-8 byte string and send it through the socket.
+        client_socket.send(formatted_command.encode('utf-8'))
 
-    # Print the formatted command to the console for confirmation and debugging.
-    print(f"Sent: {formatted_command}")
+        # Print the formatted command to the console for confirmation and debugging.
+        print(f"Sent: {formatted_command}")
+    else:
+        print("Attempted to send an empty command, skipping send.")
 
 def receive_response(client_socket):
     """
     Receives and handles responses from the server.
     If the response is a bulletin message (i.e., from a %post command), it parses and formats it accordingly.
     """
-    # Receive a response from the server (up to 1024 bytes) and decode it to a UTF-8 string.
-    response = client_socket.recv(1024).decode('utf-8')
-    print(f"Raw Response: {response}")
+    try:
+        # Receive a response from the server (up to 1024 bytes) and decode it to a UTF-8 string.
+        response = client_socket.recv(1024).decode('utf-8')
+        print(f"Raw Response: {response}")
 
-    # Check if the response is a bulletin message based on the expected format.
-    if response.startswith('%post '):
-        parsed_message = parse_bulletin_message(response)
-        if parsed_message:
-            # If successfully parsed, print each part of the bulletin message with labeled output.
-            print("Parsed Bulletin Message:")
-            for key, value in parsed_message.items():
-                print(f"{key}: {value}")
+        if not response:
+            print("Received empty response, server might have closed the connection.")
+            return
+
+        # Check if the response is a bulletin message based on the expected format.
+        if response.startswith('%post '):
+            parsed_message = parse_bulletin_message(response)
+            if parsed_message:
+                # If successfully parsed, print each part of the bulletin message with labeled output.
+                print("Parsed Bulletin Message:")
+                for key, value in parsed_message.items():
+                    print(f"{key}: {value}")
+            else:
+                print("Failed to parse bulletin message.")
         else:
-            print("Failed to parse bulletin message.")
-    else:
-        # If it's not a bulletin message, print as a regular response.
-        print("Response:", response)
+            # If it's not a bulletin message, print as a regular response.
+            print("Response:", response)
 
-    # Return the response for further assertions in tests.
-    return response
+        # Return the response for further assertions in tests.
+        return response
+    except socket.error as e:
+        print(f"Error receiving response: {e}")
+
 
 def parse_command(command, client_socket):
     """
     Parses and sends commands based on user input.
     """
-    # Handle the %%connect command, splitting additional parameters if provided.
-    if command.startswith('%%connect'):
+    # Handle the %connect command, splitting additional parameters if provided.
+    if command.startswith('%connect'):
         params = command.split()[1:]  # Capture any additional parameters.
-        # Send the %%connect command to the server with any extra parameters.
-        send_command(client_socket, '%%connect', *params)
+        if len(params) != 2:
+            print("Usage: %connect <address> <port>")
+            return client_socket
+        host, port = params
+        try:
+            port = int(port)  # Convert port to integer
+            # Attempt to connect to the server
+            client_socket = connect_to_server(host, port)
+            # print("client_socket, inside parse_command(), is:",client_socket)
+        except Exception as e:
+            print(f"Failed to connect: {e}")
+            client_socket = None
+            return client_socket
+        # Send the %connect command to the server with any extra parameters.
+        send_command(client_socket, '%connect', *params)
+        return client_socket
+        # print("client_socket, after sending data, is:",client_socket)
 
     # Handle the %join command to join with a specified username.
     elif command.startswith('%join'):
@@ -78,7 +105,7 @@ def parse_command(command, client_socket):
         # Validate if all necessary parts (sender, date, subject) are provided.
         if len(parts) < 4:
             print("Usage: %post <sender> <post_date> <subject>")
-            return
+            return client_socket
         # Unpack the command arguments.
         _, sender, post_date, subject = parts
         # Send the %post command with sender, date, and subject to create a new post.
@@ -108,8 +135,9 @@ def parse_command(command, client_socket):
         print("Exiting.")
         # Close the socket connection.
         client_socket.close()
+        client_socket = False
         # Return False to stop further command parsing.
-        return False
+        return client_socket
 
     ### Part 2 Commands ###
     
@@ -131,7 +159,7 @@ def parse_command(command, client_socket):
         if len(parts) < 4:
             print("Usage: %%grouppost <group_id> <subject> <content>")
             # Exit function without sending command if parameters are missing.
-            return
+            return client_socket
         # Unpack the command arguments.
         _, group_id, subject, content = parts
         # Send the %%grouppost command with group ID, subject, and content to post in the group.
@@ -158,23 +186,29 @@ def parse_command(command, client_socket):
     # Handle unknown commands.
     else:
         print("Unknown command.")
-        return True
+        return client_socket
 
     # After sending the command, wait for the server's response.
     receive_response(client_socket)
-    return True
+    return client_socket
 
 def main():
-    host = 'localhost'  # Replace with server's IP if needed.
-    port = 5000  # Replace with server's port.
-
-    # Connect to the server.
-    client_socket = connect_to_server(host, port)
+    # Startwith no connection.
+    client_socket = None
 
     # Command loop.
     while True:
         command = input("Enter command: ")
-        if not parse_command(command, client_socket):
+        # print("client_socket, inside main(), is:",client_socket)
+        # Call parse_command to handle the command and update client_socket.
+        if command.startswith('%connect') or client_socket:
+            client_socket = parse_command(command, client_socket)
+        else:
+            # Notify user to connect first if client_socket is None and not using %connect
+            print("Please connect to the server first using %connect <address> <port>.")
+            continue
+        # Break the loop if parse_command returns False (i.e., on %%exit command).
+        if client_socket is False:
             break
 
 if __name__ == "__main__":

@@ -14,10 +14,9 @@ def handle_client(client_socket, bulletin_board):
             # Receive up to 1024 bytes from the client.
             message = client_socket.recv(1024).decode('utf-8')
 
-            # If no message is received, the client has disconnected.
-            if not message:
-                print("Client disconnected.")
-                break
+            # If we receive an empty message, continue waiting for a valid message.
+            if not message.strip():
+                continue
 
             # Parse the command and parameters from the client's message.
             print(f"Raw message received: {message}")  # Debugging info.
@@ -25,12 +24,14 @@ def handle_client(client_socket, bulletin_board):
             print(f"Command: {command}, Params: {params}")  # Debugging line
 
             # Handle the different commands the client can send.
-            if command == '%%connect':
+            if command == '%connect':
                 # Connect command expected two parameters: address and port.
                 if len(params) == 2:
-                    response = "Connected to the bulletin board server."
+                    address = params[0]
+                    port = params[1]
+                    response = f"Connected to the bulletin board server at {address}:{port}."
                 else:
-                    response = "Error: %%connect requires address and port."
+                    response = "Error: %connect requires address and port."
                 client_socket.send(response.encode('utf-8'))
 
             elif command == '%join':
@@ -198,6 +199,7 @@ def handle_client(client_socket, bulletin_board):
         # Ensure the client socket is closed, whether or not an error occurred.
         # This releases resources associated with the client connection.
         client_socket.close()
+        print("Client disconnected.")
 
 def start_server(host, port):
     """

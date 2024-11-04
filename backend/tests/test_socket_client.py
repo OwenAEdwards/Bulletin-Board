@@ -14,7 +14,7 @@ class TestSocketClient(unittest.TestCase):
     @patch('socket_client.send_command')
     def test_send_command(self, mock_send_command):
         client_socket = MagicMock()  # Create a mock socket
-        command = '%%connect'
+        command = '%connect'
         params = ['localhost', '12345']
         
         socket_client.send_command(client_socket, command, *params)
@@ -33,32 +33,46 @@ class TestSocketClient(unittest.TestCase):
         # Here, you might want to assert that parse_bulletin_message was called if your function does that
         # mock_parse.assert_called_once_with('OK') # Uncomment if needed after adding the patch
 
-    def test_parse_command(self):
-        client_socket = MagicMock()  # Create a mock socket
+    @patch('socket_client.connect_to_server')
+    def test_parse_command(self, mock_connect_to_server):
+                # Mock the behavior of connect_to_server to return a mock socket
+        mock_socket = MagicMock()
+        mock_connect_to_server.return_value = mock_socket
 
-        # Test %%connect command
-        self.assertTrue(socket_client.parse_command('%%connect localhost 12345', client_socket))
+        # Start with no connection
+        client_socket = None
+
+        # Test %connect command
+        client_socket = socket_client.parse_command('%connect localhost 12345', client_socket)
+        self.assertIsNotNone(client_socket)  # Check that client_socket is not None after connecting
 
         # Test %join command
-        self.assertTrue(socket_client.parse_command('%join username', client_socket))
+        client_socket = socket_client.parse_command('%join username', client_socket)
+        self.assertIsNotNone(client_socket)
 
         # Test %post command with valid parameters
-        self.assertTrue(socket_client.parse_command('%post Alice 2024-10-28 Subject', client_socket))
+        client_socket = socket_client.parse_command('%post Alice 2024-10-28 Subject', client_socket)
+        self.assertIsNotNone(client_socket)
 
         # Test %%users command
-        self.assertTrue(socket_client.parse_command('%%users', client_socket))
+        client_socket = socket_client.parse_command('%%users', client_socket)
+        self.assertIsNotNone(client_socket)
 
         # Test %%leave command
-        self.assertTrue(socket_client.parse_command('%%leave username', client_socket))
+        client_socket = socket_client.parse_command('%%leave username', client_socket)
+        self.assertIsNotNone(client_socket)
 
         # Test %message command
-        self.assertTrue(socket_client.parse_command('%message 1', client_socket))
+        client_socket = socket_client.parse_command('%message 1', client_socket)
+        self.assertIsNotNone(client_socket)
 
         # Test %%exit command
-        self.assertFalse(socket_client.parse_command('%%exit', client_socket))
+        client_socket = socket_client.parse_command('%%exit', client_socket)
+        self.assertFalse(client_socket)  # Expect client_socket to be None after exit
 
         # Test invalid command
-        self.assertTrue(socket_client.parse_command('%%invalid', client_socket))
+        client_socket = socket_client.parse_command('%%invalid', client_socket)
+        self.assertIsNotNone(client_socket)  # Invalid command shouldn't close the socket
 
 
 if __name__ == '__main__':

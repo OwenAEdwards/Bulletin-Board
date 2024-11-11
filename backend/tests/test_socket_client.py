@@ -54,24 +54,24 @@ class TestSocketClient(unittest.TestCase):
         client_socket = socket_client.parse_command('%post Alice 2024-10-28 Subject', client_socket)
         self.assertIsNotNone(client_socket)
 
-        # Test %%users command
-        client_socket = socket_client.parse_command('%%users', client_socket)
+        # Test %users command
+        client_socket = socket_client.parse_command('%users', client_socket)
         self.assertIsNotNone(client_socket)
 
-        # Test %%leave command
-        client_socket = socket_client.parse_command('%%leave username', client_socket)
+        # Test %leave command
+        client_socket = socket_client.parse_command('%leave username', client_socket)
         self.assertIsNotNone(client_socket)
 
         # Test %message command
         client_socket = socket_client.parse_command('%message 1', client_socket)
         self.assertIsNotNone(client_socket)
 
-        # Test %%exit command
-        client_socket = socket_client.parse_command('%%exit', client_socket)
+        # Test %exit command
+        client_socket = socket_client.parse_command('%exit', client_socket)
         self.assertFalse(client_socket)  # Expect client_socket to be None after exit
 
         # Test invalid command
-        client_socket = socket_client.parse_command('%%invalid', client_socket)
+        client_socket = socket_client.parse_command('%invalid', client_socket)
         self.assertIsNotNone(client_socket)  # Invalid command shouldn't close the socket
 
 

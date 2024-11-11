@@ -10,7 +10,7 @@ class TestSocketServer(unittest.TestCase):
         mock_client_socket = MagicMock()
         mock_client_socket.recv.side_effect = [
             b'%join username',  # Simulate the join command from the client
-            b'%%exit'           # Simulate the exit command
+            b'%exit'           # Simulate the exit command
         ]
 
         # Set up the mock to respond as expected
@@ -34,7 +34,7 @@ class TestSocketServer(unittest.TestCase):
         mock_client_socket = MagicMock()
         mock_client_socket.recv.side_effect = [
             b'%post Alice 2024-10-28 Test Subject',  # First command to post
-            b'%%exit'  # Exit command to end the client session
+            b'%exit'  # Exit command to end the client session
         ]
 
         # Set up the mock to return a message ID when add_post is called
@@ -54,7 +54,7 @@ class TestSocketServer(unittest.TestCase):
     def test_exit_command(self):
         mock_client_socket = MagicMock()
         mock_bulletin_board = MagicMock()
-        mock_client_socket.recv.return_value = b'%%exit'
+        mock_client_socket.recv.return_value = b'%exit'
 
         socket_server.handle_client(mock_client_socket, mock_bulletin_board)
 
@@ -64,8 +64,8 @@ class TestSocketServer(unittest.TestCase):
         mock_client_socket = MagicMock()
         mock_bulletin_board = MagicMock()
         mock_client_socket.recv.side_effect = [
-            b'%%unknown',
-            b'%%exit'
+            b'%unknown',
+            b'%exit'
         ]
 
         socket_server.handle_client(mock_client_socket, mock_bulletin_board)

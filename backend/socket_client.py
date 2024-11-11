@@ -111,16 +111,16 @@ def parse_command(command, client_socket):
         # Send the %post command with sender, date, and subject to create a new post.
         send_command(client_socket, '%post', sender, post_date, subject)
 
-    # Handle the %%users command to request the list of users.
-    elif command.startswith('%%users'):
-        # Send the %%users command to the server without additional parameters
-        send_command(client_socket, '%%users')
+    # Handle the %users command to request the list of users.
+    elif command.startswith('%users'):
+        # Send the %users command to the server without additional parameters
+        send_command(client_socket, '%users')
 
-    # Handle the %%leave command to leave with a specified username.
-    elif command.startswith('%%leave'):
+    # Handle the %leave command to leave with a specified username.
+    elif command.startswith('%leave'):
         username = command.split()[1]
-        # Send the %%leave command to disconnect the specified user from the server.
-        send_command(client_socket, '%%leave', username)
+        # Send the %leave command to disconnect the specified user from the server.
+        send_command(client_socket, '%leave', username)
 
     # Handle the %message command to request a specific message by ID.
     elif command.startswith('%message'):
@@ -128,10 +128,10 @@ def parse_command(command, client_socket):
         # Send the %message command to retrieve the message with the specified ID.
         send_command(client_socket, '%message', message_id)
 
-    # Handle the %%exit command to close the connection and end the program.
-    elif command.startswith('%%exit'):
-        # Send the %%exit command to the server to close the connection.
-        send_command(client_socket, '%%exit')
+    # Handle the %exit command to close the connection and end the program.
+    elif command.startswith('%exit'):
+        # Send the %exit command to the server to close the connection.
+        send_command(client_socket, '%exit')
         print("Exiting.")
         # Close the socket connection.
         client_socket.close()
@@ -141,47 +141,47 @@ def parse_command(command, client_socket):
 
     ### Part 2 Commands ###
     
-    # Handle the %%groups command to list available groups.
-    elif command.startswith('%%groups'):
-        # Send the %%groups command to retrieve the list of groups from the server.
-        send_command(client_socket, '%%groups')
+    # Handle the %groups command to list available groups.
+    elif command.startswith('%groups'):
+        # Send the %groups command to retrieve the list of groups from the server.
+        send_command(client_socket, '%groups')
 
-    # Handle the %%groupjoin command to join a specified group by ID.
-    elif command.startswith('%%groupjoin'):
+    # Handle the %groupjoin command to join a specified group by ID.
+    elif command.startswith('%groupjoin'):
         group_id = command.split()[1]
-        # Send the %%groupjoin command with the specified group ID to join the group.
-        send_command(client_socket, '%%groupjoin', group_id)
+        # Send the %groupjoin command with the specified group ID to join the group.
+        send_command(client_socket, '%groupjoin', group_id)
 
-    # Handle the %%grouppost command, checking for all required parameters.
-    elif command.startswith('%%grouppost'):
+    # Handle the %grouppost command, checking for all required parameters.
+    elif command.startswith('%grouppost'):
         parts = command.split(maxsplit=3)  # Split command to capture all arguments.
         # Validate if all necessary parts (group ID, subject, content) are provided.
         if len(parts) < 4:
-            print("Usage: %%grouppost <group_id> <subject> <content>")
+            print("Usage: %grouppost <group_id> <subject> <content>")
             # Exit function without sending command if parameters are missing.
             return client_socket
         # Unpack the command arguments.
         _, group_id, subject, content = parts
-        # Send the %%grouppost command with group ID, subject, and content to post in the group.
-        send_command(client_socket, '%%grouppost', group_id, subject, content)
+        # Send the %grouppost command with group ID, subject, and content to post in the group.
+        send_command(client_socket, '%grouppost', group_id, subject, content)
 
-    # Handle the %%groupusers command to list users in a specified group.
-    elif command.startswith('%%groupusers'):
+    # Handle the %groupusers command to list users in a specified group.
+    elif command.startswith('%groupusers'):
         group_id = command.split()[1]
-        # Send the %%groupusers command with group ID to retrieve the list of users in that group.
-        send_command(client_socket, '%%groupusers', group_id)
+        # Send the %groupusers command with group ID to retrieve the list of users in that group.
+        send_command(client_socket, '%groupusers', group_id)
 
-    # Handle the %%groupleave command to leave a specified group.
-    elif command.startswith('%%groupleave'):
+    # Handle the %groupleave command to leave a specified group.
+    elif command.startswith('%groupleave'):
         group_id = command.split()[1]
-        # Send the %%groupleave command with the group ID to disconnect from that group.
-        send_command(client_socket, '%%groupleave', group_id)
+        # Send the %groupleave command with the group ID to disconnect from that group.
+        send_command(client_socket, '%groupleave', group_id)
 
-    # Handle the %%groupmessage command to get a specific message in a group.
-    elif command.startswith('%%groupmessage'):
+    # Handle the %groupmessage command to get a specific message in a group.
+    elif command.startswith('%groupmessage'):
         group_id, message_id = command.split()[1:3]
-        # Send the %%groupmessage command with both group ID and message ID to fetch the message.
-        send_command(client_socket, '%%groupmessage', group_id, message_id)
+        # Send the %groupmessage command with both group ID and message ID to fetch the message.
+        send_command(client_socket, '%groupmessage', group_id, message_id)
 
     # Handle unknown commands.
     else:
@@ -207,7 +207,7 @@ def main():
             # Notify user to connect first if client_socket is None and not using %connect
             print("Please connect to the server first using %connect <address> <port>.")
             continue
-        # Break the loop if parse_command returns False (i.e., on %%exit command).
+        # Break the loop if parse_command returns False (i.e., on %exit command).
         if client_socket is False:
             break
 

@@ -66,7 +66,7 @@ def handle_client(client_socket, bulletin_board):
                     response = "Error: Incorrect parameters for %post."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%users':
+            elif command == '%users':
                 # Retrieve the list of users from the bulletin board.
                 users = bulletin_board.list_users()
                 # Format the list of users as a newline-separated string if there are any users.
@@ -74,7 +74,7 @@ def handle_client(client_socket, bulletin_board):
                 response = "\n".join(users) if users else "No users in the group."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%leave':
+            elif command == '%leave':
                 # Leave command expects one parameter: username.
                 if len(params) == 1:
                     username = params[0]
@@ -84,7 +84,7 @@ def handle_client(client_socket, bulletin_board):
                     response = f"{username} has left the bulletin board."
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: Incorrect parameters for %%leave."
+                    response = "Error: Incorrect parameters for %leave."
                 client_socket.send(response.encode('utf-8'))
 
             elif command == '%message':
@@ -100,7 +100,7 @@ def handle_client(client_socket, bulletin_board):
                     response = "Error: %message requires a message ID."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%exit':
+            elif command == '%exit':
                 # Exit command terminates client session.
                 # Send a farewell message to the client.
                 response = "Goodbye!"
@@ -110,7 +110,7 @@ def handle_client(client_socket, bulletin_board):
 
             ### Part 2 commands ###
             
-            elif command == '%%groups':
+            elif command == '%groups':
                 # Retrieve a list of all available groups from the bulletin board.
                 groups = bulletin_board.list_groups()
                 # Format the list as a newline-separated string if there are groups available;
@@ -118,7 +118,7 @@ def handle_client(client_socket, bulletin_board):
                 response = "\n".join(groups) if groups else "No groups available."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%groupjoin':
+            elif command == '%groupjoin':
                 # Group Join command expects one parameter: group_id.
                 if len(params) == 1:
                     group_id = params[0]
@@ -126,10 +126,10 @@ def handle_client(client_socket, bulletin_board):
                     response = bulletin_board.join_group(group_id)
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %%groupjoin requires group ID/name."
+                    response = "Error: %groupjoin requires group ID/name."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%grouppost':
+            elif command == '%grouppost':
                 # Group Post command expects at least three parameters: group_id, subject, and content.
                 if len(params) >= 3:
                     group_id = params[0]
@@ -140,10 +140,10 @@ def handle_client(client_socket, bulletin_board):
                     response = bulletin_board.post_to_group(group_id, subject, content)
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %%grouppost requires group ID, subject, and content."
+                    response = "Error: %grouppost requires group ID, subject, and content."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%groupusers':
+            elif command == '%groupusers':
                 # Group Users command expects one parameter: group_id.
                 if len(params) == 1:
                     group_id = params[0]
@@ -154,10 +154,10 @@ def handle_client(client_socket, bulletin_board):
                     response = "\n".join(users) if users else "No users in the group."
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %%groupusers requires group ID/name."
+                    response = "Error: %groupusers requires group ID/name."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%groupleave':
+            elif command == '%groupleave':
                 # Group Leave command expects one parameter: group_id.
                 if len(params) == 1:
                     group_id = params[0]
@@ -165,10 +165,10 @@ def handle_client(client_socket, bulletin_board):
                     response = bulletin_board.leave_group(group_id)
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %%groupleave requires group ID/name."
+                    response = "Error: %groupleave requires group ID/name."
                 client_socket.send(response.encode('utf-8'))
 
-            elif command == '%%groupmessage':
+            elif command == '%groupmessage':
                 # Group Message command expects two parameters: group_id and message_id.
                 if len(params) == 2:
                     group_id = params[0]
@@ -177,7 +177,7 @@ def handle_client(client_socket, bulletin_board):
                     response = bulletin_board.get_group_message(group_id, message_id)
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %%groupmessage requires group ID and message ID."
+                    response = "Error: %groupmessage requires group ID and message ID."
                 client_socket.send(response.encode('utf-8'))
 
             else:

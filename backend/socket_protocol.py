@@ -33,7 +33,7 @@ def parse_client_command(message):
     params = command_parts[1].split()  # Split the parameters by spaces
 
     # Handling specific commands based on their structure.
-    if command in ['%%users', '%%exit', '%%groups']:
+    if command in ['%users', '%exit', '%groups']:
         # Commands that do not require parameters
         return command, []
 
@@ -43,7 +43,7 @@ def parse_client_command(message):
             return command, []
         return command, [params[0].strip(), params[1].strip()]
 
-    elif command in ['%join', '%%leave', '%%message', '%%groupjoin', '%%groupusers', '%%groupleave']:
+    elif command in ['%join', '%leave', '%message', '%groupjoin', '%groupusers', '%groupleave']:
         # Commands expecting exactly one parameter
         return command, [params[0].strip()] if params else []
 
@@ -57,17 +57,17 @@ def parse_client_command(message):
         subject = " ".join(params[2:]).strip()  # Join all remaining parts as the subject
         return command, [sender, post_date, subject]
 
-    elif command == '%%grouppost':
+    elif command == '%grouppost':
         # Command expecting three parameters
         if len(params) < 3:
-            print("Usage: %%grouppost <group_id> <subject> <content>")
+            print("Usage: %grouppost <group_id> <subject> <content>")
             return command, []
         return command, params[:3]
 
-    elif command == '%%groupmessage':
+    elif command == '%groupmessage':
         # Command expecting two parameters
         if len(params) < 2:
-            print("Usage: %%groupmessage <group_id> <message_id>")
+            print("Usage: %groupmessage <group_id> <message_id>")
             return command, []
         return command, params[:2]
 

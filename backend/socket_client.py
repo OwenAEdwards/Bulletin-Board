@@ -1,5 +1,8 @@
 import socket
+import asyncio
 from socket_protocol import format_client_command, parse_bulletin_message
+
+username = None  # Global variable to track the joined username
 
 def connect_to_server(host, port):
     """
@@ -30,48 +33,60 @@ def send_command(client_socket, command, *params):
         client_socket.send(formatted_command.encode('utf-8'))
 
         # Print the formatted command to the console for confirmation and debugging.
-        print(f"Sent: {formatted_command}")
+        print(f"Sent: {formatted_command.strip()}")
     else:
         print("Attempted to send an empty command, skipping send.")
 
-def receive_response(client_socket):
+async def receive_response(client_socket):
     """
-    Receives and handles responses from the server.
-    If the response is a bulletin message (i.e., from a %post command), it parses and formats it accordingly.
+    Receives and processes all responses from the server until no more data is available.
+    If the response is a bulletin message, it parses and formats it accordingly.
     """
+    loop = asyncio.get_event_loop()
+    buffer = ""  # Accumulates data
+
     try:
-        # Receive a response from the server (up to 1024 bytes) and decode it to a UTF-8 string.
-        response = client_socket.recv(1024).decode('utf-8')
-        print(f"Raw Response: {response}")
+        while True:
+            # Attempt to receive up to 1024 bytes from the server
+            response_part = await loop.sock_recv(client_socket, 1024)
 
-        if not response:
-            print("Received empty response, server might have closed the connection.")
-            return
+            if not response_part:
+                break  # Connection closed by the server
+            
+            # Decode
+            buffer += response_part.decode('utf-8')
 
-        # Check if the response is a bulletin message based on the expected format.
-        if response.startswith('%post '):
-            parsed_message = parse_bulletin_message(response)
-            if parsed_message:
-                # If successfully parsed, print each part of the bulletin message with labeled output.
-                print("Parsed Bulletin Message:")
-                for key, value in parsed_message.items():
-                    print(f"{key}: {value}")
-            else:
-                print("Failed to parse bulletin message.")
+            # Process complete message
+            while "\r\n" in buffer:
+                message, buffer = buffer.split("\r\n", 1)
+            return message
+    except Exception as e:
+        print("Error during receive:", e)
+
+    # Combine all parts to form the complete response
+    response = ''.join(message)
+    print(f"Raw Full Response:", response)
+
+    # Handle and display the response as appropriate
+    if response.startswith('%post '):
+        parsed_message = parse_bulletin_message(response)
+        if parsed_message:
+            print("Parsed Bulletin Message:")
+            for key, value in parsed_message.items():
+                print(f"{key}: {value}")
         else:
-            # If it's not a bulletin message, print as a regular response.
-            print("Response:", response)
+            print("Failed to parse bulletin message.")
+    else:
+        print("Response:", response)
 
-        # Return the response for further assertions in tests.
-        return response
-    except socket.error as e:
-        print(f"Error receiving response: {e}")
+    return response
 
-
-def parse_command(command, client_socket):
+async def parse_command(command, client_socket):
     """
     Parses and sends commands based on user input.
     """
+    global username
+
     # Handle the %connect command, splitting additional parameters if provided.
     if command.startswith('%connect'):
         params = command.split()[1:]  # Capture any additional parameters.
@@ -90,40 +105,82 @@ def parse_command(command, client_socket):
             return client_socket
         # Send the %connect command to the server with any extra parameters.
         send_command(client_socket, '%connect', *params)
+        await receive_response(client_socket)
         return client_socket
         # print("client_socket, after sending data, is:",client_socket)
 
     # Handle the %join command to join with a specified username.
     elif command.startswith('%join'):
         username = command.split()[1]
+        print("[DEBUG] Client socket before sending %join:", client_socket)
         # Send the %join command along with the specified username to the server.
         send_command(client_socket, '%join', username)
+        # Wait for server confirmation of join
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %join command:", response)
+        return client_socket
 
     # Handle the %post command, verifying the correct number of arguments.
     elif command.startswith('%post'):
-        parts = command.split(maxsplit=3)  # Split command to capture all arguments.
-        # Validate if all necessary parts (sender, date, subject) are provided.
-        if len(parts) < 4:
-            print("Usage: %post <sender> <post_date> <subject>")
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
             return client_socket
-        # Unpack the command arguments.
-        _, sender, post_date, subject = parts
-        # Send the %post command with sender, date, and subject to create a new post.
-        send_command(client_socket, '%post', sender, post_date, subject)
+
+        # Split only once after the command to get the subject and content as a single string
+        parts = command.split(maxsplit=2)
+
+        # Validate if subject and content are provided.
+        if len(parts) < 3:
+            print("Usage: %post <subject> <content>")
+            return client_socket
+
+        # Extract the subject and content from the split parts
+        _, subject, content = parts
+
+        # Generate post date on the client-side for consistency
+        from datetime import datetime
+        post_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Construct the final message with all parts as a single string
+        final_message = f"%post {username} {post_date} {subject} {content}"
+
+        print("[DEBUG] Client socket before sending %post:", client_socket)
+
+        # Send the %post command with all parameters to the server.
+        send_command(client_socket, final_message)
+
+        # Receive the response after each command
+        response = await receive_response(client_socket)
+
+        print("[DEBUG] Response after %post command:", response)
+        return client_socket
 
     # Handle the %users command to request the list of users.
     elif command.startswith('%users'):
         # Send the %users command to the server without additional parameters
         send_command(client_socket, '%users')
+        return client_socket
 
     # Handle the %leave command to leave with a specified username.
     elif command.startswith('%leave'):
-        username = command.split()[1]
-        # Send the %leave command to disconnect the specified user from the server.
-        send_command(client_socket, '%leave', username)
+        # Check if the client is logged in as a user
+        if username:
+            # Send the %leave command to disconnect the specified user from the server.
+            send_command(client_socket, '%leave', username)
+            # Clear the username afterwards
+            username = None
+        else:
+            print("You are not currently joined.")
+        return client_socket
 
     # Handle the %message command to request a specific message by ID.
     elif command.startswith('%message'):
+        # Check if message ID is provided
+        if len(parts) != 2:
+            print("Usage: %message <message_id>")
+            return client_socket
+        
         message_id = command.split()[1]
         # Send the %message command to retrieve the message with the specified ID.
         send_command(client_socket, '%message', message_id)
@@ -136,6 +193,7 @@ def parse_command(command, client_socket):
         # Close the socket connection.
         client_socket.close()
         client_socket = False
+        username = None
         # Return False to stop further command parsing.
         return client_socket
 
@@ -189,10 +247,10 @@ def parse_command(command, client_socket):
         return client_socket
 
     # After sending the command, wait for the server's response.
-    receive_response(client_socket)
+    await receive_response(client_socket)
     return client_socket
 
-def main():
+async def main():
     # Startwith no connection.
     client_socket = None
 
@@ -202,7 +260,7 @@ def main():
         # print("client_socket, inside main(), is:",client_socket)
         # Call parse_command to handle the command and update client_socket.
         if command.startswith('%connect') or client_socket:
-            client_socket = parse_command(command, client_socket)
+            client_socket = await parse_command(command, client_socket)
         else:
             # Notify user to connect first if client_socket is None and not using %connect
             print("Please connect to the server first using %connect <address> <port>.")
@@ -212,4 +270,4 @@ def main():
             break
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

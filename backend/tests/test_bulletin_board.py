@@ -33,15 +33,15 @@ class TestBulletinBoard(unittest.TestCase):
 
     def test_add_post(self):
         """Test adding a post."""
-        message_id = self.board.add_post("Alice", "2024-10-01", "Hello World")
+        message_id = self.board.add_post("Alice", "2024-10-01", "Subject", "Hello World")
         self.assertEqual(message_id, 1)
         self.assertEqual(len(self.board.messages), 1)
 
     def test_get_message_content(self):
         """Test retrieving message content by ID."""
-        self.board.add_post("Alice", "2024-10-01", "Hello World")
+        self.board.add_post("Alice", "2024-10-01", "Subject", "Hello World")
         content = self.board.get_message_content(1)
-        self.assertEqual(content, "Alice on 2024-10-01: Hello World")
+        self.assertEqual(content, "Alice on 2024-10-01: Subject")
 
     def test_get_nonexistent_message_content(self):
         """Test retrieving content of a message that does not exist."""

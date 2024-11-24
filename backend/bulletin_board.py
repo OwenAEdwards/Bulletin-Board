@@ -26,20 +26,18 @@ class BulletinBoard:
             return f"{user} removed successfully."
         return f"{user} is not found."
 
-    def add_post(self, sender, post_date, subject):
-        """Creates a new message and assigns it a unique ID."""
+    def add_post(self, sender, post_date, subject, content):
+        """Creates a new message with a unique ID and saves it."""
         message_id = next(self.message_counter)
-        self.messages.append({
+        message = {
             'id': message_id,
             'sender': sender,
             'date': post_date,
-            'subject': subject
-        })
+            'subject': subject,
+            'content': content
+        }
+        self.messages.append(message)  # Save the message directly here
         return message_id
-
-    def save_message(self, message):
-        """Adds a formatted message to the messages list."""
-        self.messages.append(message)
 
     def list_users(self):
         """Returns a list of usernames currently on the bulletin board."""

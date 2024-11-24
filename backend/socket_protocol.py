@@ -5,11 +5,11 @@ def format_client_command(command, *params):
     """
     return f"{command} " + " ".join(params)
 
-def format_bulletin_message(message_id, sender, post_date, subject):
+def format_bulletin_message(message_id, sender, post_date, subject, content):
     """
     Formats a bulletin message for display on the server's bulletin board.
     """
-    return f"{message_id} {sender} {post_date} {subject}"
+    return f"{message_id} {sender} {post_date} {subject} {content}"
 
 def parse_client_command(message):
     """
@@ -33,7 +33,7 @@ def parse_client_command(message):
     params = command_parts[1].split()  # Split the parameters by spaces
 
     # Handling specific commands based on their structure.
-    if command in ['%users', '%exit', '%groups']:
+    if command in ['%users', '%leave', '%exit', '%groups']:
         # Commands that do not require parameters
         return command, []
 
@@ -43,19 +43,21 @@ def parse_client_command(message):
             return command, []
         return command, [params[0].strip(), params[1].strip()]
 
-    elif command in ['%join', '%leave', '%message', '%groupjoin', '%groupusers', '%groupleave']:
+    elif command in ['%join', '%message', '%groupjoin', '%groupusers', '%groupleave']:
         # Commands expecting exactly one parameter
         return command, [params[0].strip()] if params else []
 
     elif command == '%post':
-        # Command expecting three parameters
-        if len(params) < 3:
-            print("Usage: %post <sender> <post_date> <subject>")
+        # Ensure we have at least four parameters: sender, post_date (with time), subject, and content
+        if len(params) < 5:  # Adjusted to account for post_date as two fields
+            print("Usage: %post <sender> <post_date> <subject> <content>")
             return command, []
+        
         sender = params[0].strip()
-        post_date = params[1].strip()
-        subject = " ".join(params[2:]).strip()  # Join all remaining parts as the subject
-        return command, [sender, post_date, subject]
+        post_date = f"{params[1].strip()} {params[2].strip()}"  # Combine date and time
+        subject = params[3].strip()
+        content = " ".join(params[4:]).strip()  # Join remaining parts as content
+        return command, [sender, post_date, subject, content]
 
     elif command == '%grouppost':
         # Command expecting three parameters

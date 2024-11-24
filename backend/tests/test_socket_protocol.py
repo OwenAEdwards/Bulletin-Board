@@ -8,9 +8,10 @@ class TestSocketProtocol(unittest.TestCase):
         message_id = 1
         sender = "Alice"
         post_date = "2024-10-01"
-        subject = "Hello World"
-        formatted_message = format_bulletin_message(message_id, sender, post_date, subject)
-        expected_message = "1 Alice 2024-10-01 Hello World"
+        subject = "Subject"
+        content = "Hello World"
+        formatted_message = format_bulletin_message(message_id, sender, post_date, subject, content)
+        expected_message = "1 Alice 2024-10-01 Subject Hello World"
         self.assertEqual(formatted_message, expected_message)
 
     def test_format_client_command(self):

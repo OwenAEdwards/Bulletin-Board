@@ -160,6 +160,8 @@ async def parse_command(command, client_socket):
     elif command.startswith('%users'):
         # Send the %users command to the server without additional parameters
         send_command(client_socket, '%users')
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %users command:", response)
         return client_socket
 
     # Handle the %leave command to leave with a specified username.

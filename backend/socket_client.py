@@ -111,6 +111,11 @@ async def parse_command(command, client_socket):
 
     # Handle the %join command to join with a specified username.
     elif command.startswith('%join'):
+        # Prevent joining if already logged in
+        if username:
+            print("You are already joined as:", username)
+            return client_socket
+        
         username = command.split()[1]
         print("[DEBUG] Client socket before sending %join:", client_socket)
         # Send the %join command along with the specified username to the server.
@@ -158,6 +163,11 @@ async def parse_command(command, client_socket):
 
     # Handle the %users command to request the list of users.
     elif command.startswith('%users'):
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
+            return client_socket
+
         # Send the %users command to the server without additional parameters
         send_command(client_socket, '%users')
         response = await receive_response(client_socket)
@@ -170,6 +180,9 @@ async def parse_command(command, client_socket):
         if username:
             # Send the %leave command to disconnect the specified user from the server.
             send_command(client_socket, '%leave', username)
+            response = await receive_response(client_socket)
+            print("[DEBUG] Response after %leave command:", response)
+
             # Clear the username afterwards
             username = None
         else:
@@ -178,6 +191,11 @@ async def parse_command(command, client_socket):
 
     # Handle the %message command to request a specific message by ID.
     elif command.startswith('%message'):
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
+            return client_socket
+
         # Check if message ID is provided
         if len(parts) != 2:
             print("Usage: %message <message_id>")

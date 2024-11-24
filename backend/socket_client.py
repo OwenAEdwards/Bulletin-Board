@@ -196,14 +196,20 @@ async def parse_command(command, client_socket):
             print("You must join the bulletin board first using %join <username>.")
             return client_socket
 
+        # Split the command into parts
+        parts = command.split()
+
         # Check if message ID is provided
         if len(parts) != 2:
             print("Usage: %message <message_id>")
             return client_socket
         
-        message_id = command.split()[1]
+        message_id = parts[1]
         # Send the %message command to retrieve the message with the specified ID.
         send_command(client_socket, '%message', message_id)
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %message command:", response)
+        return client_socket
 
     # Handle the %exit command to close the connection and end the program.
     elif command.startswith('%exit'):

@@ -103,7 +103,7 @@ def handle_client(client_socket, bulletin_board):
             elif command == '%message':
                 # Message command expects one parameter: message_id.
                 if len(params) == 1:
-                    message_id = params[0]
+                    message_id = int(params[0])
                     # Retrieve the content of the specified message from the bulletin board.
                     message_content = bulletin_board.get_message_content(message_id)
                     # If the message is found, send its content; otherwise, indicate that it wasn't found.

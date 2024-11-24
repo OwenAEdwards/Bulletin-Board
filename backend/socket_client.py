@@ -216,6 +216,8 @@ async def parse_command(command, client_socket):
         # Send the %exit command to the server to close the connection.
         send_command(client_socket, '%exit')
         print("Exiting.")
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %exit command:", response)
         # Close the socket connection.
         client_socket.close()
         client_socket = False

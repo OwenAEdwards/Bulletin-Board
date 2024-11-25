@@ -231,6 +231,9 @@ async def parse_command(command, client_socket):
     elif command.startswith('%groups'):
         # Send the %groups command to retrieve the list of groups from the server.
         send_command(client_socket, '%groups')
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %groups command:", response)
+        return client_socket
 
     # Handle the %groupjoin command to join a specified group by ID.
     elif command.startswith('%groupjoin'):

@@ -30,6 +30,7 @@ why you could not handle them).
 
 - `app.py`: Flask server. Handles API requests, e.g., communication with frontend.
 - `bulletin_board.py`: Core logic for the bulletin board system. Handles the structure of groups, messages, and user management within the application. This script interacts with the socket server to manage user activities.
+- `private_board.py`: Core logic for the private chat rooms. Similar functionality to main bulletin board but in separate file for separation of concern.
 - `socket_client.py`: Client application for connecting to the bulletin board server. Handles user input, sends commands, and processes responses from the server.
 - `requirements.txt`: List of dependencies for Flask and other Python packages.
 - `socket_protocol.py`: Defines the message protocol for communication between the client and the server. This handles message formatting and parsing.
@@ -37,7 +38,8 @@ why you could not handle them).
 
 #### backend/tests
 
-- `test_bulletin_board.py`: Test cases for validating bulletin board system logic.
+- `test_bulletin_board.py`: Test cases for validating public bulletin board system logic.
+- `test_private_board.py`: Test cases for validating private bulletin board system logic.
 - `test_socket_client.py`: Test cases for validating the client application.
 - `test_socket_protocol.py`: Test cases for validating the message protocol.
 - `test_socket_server.py`: Test cases for validating the server application.

@@ -2,6 +2,7 @@ import socket
 import threading
 from socket_protocol import parse_client_command
 from bulletin_board import BulletinBoard
+from private_board import PrivateBoard
 
 # Unique delimiter
 CRLF = "\r\n"
@@ -9,7 +10,7 @@ CRLF = "\r\n"
 # Dictionary to keep track of session data for each client
 client_sessions = {}
 
-def handle_client(client_socket, bulletin_board):
+def handle_client(client_socket, public_board, private_boards):
     """
     Handles communication with a single connected client.
     Continuously listens for client commands, processes them, and sends responses back.
@@ -50,7 +51,7 @@ def handle_client(client_socket, bulletin_board):
                     # Set username in session data
                     client_sessions[client_socket]['username'] = username
                     # Add the user to the bulletin board.
-                    bulletin_board.add_user(username)
+                    public_board.add_user(username)
                     response = f"{username} has joined the bulletin board."
                 else:
                     # Error message if the wrong number of parameters is provided.
@@ -66,11 +67,11 @@ def handle_client(client_socket, bulletin_board):
                     content = params[3]
 
                     # Verify that the sender has joined the bulletin board.
-                    if sender not in bulletin_board.list_users():
+                    if sender not in public_board.list_users():
                         response = "Error: You must join the bulletin board first using %join <username>."
                     else:
                         # Generate a unique message ID and add the post to the bulletin board
-                        message_id = bulletin_board.add_post(sender, post_date, subject, content)
+                        message_id = public_board.add_post(sender, post_date, subject, content)
                         print(f"Calling add_post with: sender={sender}, post_date={post_date}, subject={subject}")
                         
                         response = f"Message posted with ID {message_id}."
@@ -82,7 +83,7 @@ def handle_client(client_socket, bulletin_board):
 
             elif command == '%users':
                 # Retrieve the list of users from the bulletin board.
-                users = bulletin_board.list_users()
+                users = public_board.list_users()
                 # Format the list of users as a newline-separated string if there are any users.
                 # If the list is empty, send a response indicating no users are in the group.
                 response = "\n".join(users) if users else "No users in the group."
@@ -92,7 +93,7 @@ def handle_client(client_socket, bulletin_board):
             elif command == '%leave':
                 username = client_sessions[client_socket].get('username')
                 if username:
-                    bulletin_board.remove_user(username)
+                    public_board.remove_user(username)
                     response = f"{username} has left the bulletin board."
                     # Clear session data
                     client_sessions[client_socket]['username'] = None
@@ -105,7 +106,7 @@ def handle_client(client_socket, bulletin_board):
                 if len(params) == 1:
                     message_id = int(params[0])
                     # Retrieve the content of the specified message from the bulletin board.
-                    message_content = bulletin_board.get_message_content(message_id)
+                    message_content = public_board.get_message_content(message_id)
                     # If the message is found, send its content; otherwise, indicate that it wasn't found.
                     response = message_content if message_content else "Message not found."
                 else:
@@ -124,11 +125,15 @@ def handle_client(client_socket, bulletin_board):
             ### Part 2 commands ###
             
             elif command == '%groups':
-                # Retrieve a list of all available groups from the bulletin board.
-                groups = bulletin_board.list_groups()
-                # Format the list as a newline-separated string if there are groups available;
-                # otherwise, send a response indicating no groups are available.
-                response = "\n".join(groups) if groups else "No groups available."
+                # Ensure private_boards is a list of PrivateBoard instances
+                if private_boards:
+                    # Retrieve group names and IDs from each PrivateBoard instance
+                    groups = [f"ID: {board.group_id}, Name: {board.group_name}" for board in private_boards]
+                    # Format the list as a newline-separated string if there are groups available
+                    response = "\n".join(groups)
+                else:
+                    # Indicate that no groups are available
+                    response = "No groups available."
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupjoin':
@@ -233,8 +238,12 @@ def start_server(host, port):
     server.listen(5)
     print(f"[*] Listening on {host}:{port}")
 
-    # Initialize a BulletinBoard instance to store messages from clients.
-    bulletin_board = BulletinBoard()
+    # Initialize a BulletinBoard instance to store messages from clients for the public bulletin board.
+    public_board = BulletinBoard()
+
+    # Initialize 5 BulletinBoard instances to store messages from clients for the private bulletin boards.
+    custom_group_names = ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"]
+    private_boards = [PrivateBoard(f"Group {name}") for name in custom_group_names]
 
     # Continuously accept new client connections.
     while True:
@@ -244,7 +253,7 @@ def start_server(host, port):
 
         # Create a new thread to handle communication with this client.
         # Each client connection is managed independently to allow simultaneous clients.
-        client_handler_thread = threading.Thread(target=handle_client, args=(client_socket, bulletin_board))
+        client_handler_thread = threading.Thread(target=handle_client, args=(client_socket, public_board, private_boards))
 
         # Start the client handler thread.
         client_handler_thread.start()

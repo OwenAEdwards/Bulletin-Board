@@ -137,14 +137,25 @@ def handle_client(client_socket, public_board, private_boards):
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupjoin':
-                # Group Join command expects one parameter: group_id.
+                # Group Join command expects one parameter: group_id or group_name.
                 if len(params) == 1:
-                    group_id = params[0]
-                    # Attempt to join the specified group by ID/name.
-                    response = bulletin_board.join_group(group_id)
+                    group_id = int(params[0])
+
+                    # Check if client already has a username from %join
+                    if client_sessions[client_socket]['username']:
+                        username = client_sessions[client_socket]['username']
+
+                    # Check if the group exists in private_boards
+                    matching_group = next((board for board in private_boards if board.group_id == group_id), None)
+                    if matching_group:
+                        # Attempt to join the specified group by ID
+                        response = matching_group.join_group(username, group_id)
+                    else:
+                        # Error message if the group does not exist
+                        response = f"Error: Group '{group_id}' does not exist."
                 else:
                     # Error message if the wrong number of parameters is provided.
-                    response = "Error: %groupjoin requires group ID/name."
+                    response = "Error: %groupjoin requires group ID."
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%grouppost':

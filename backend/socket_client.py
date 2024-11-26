@@ -191,17 +191,17 @@ async def parse_command(command, client_socket):
 
     # Handle the %message command to request a specific message by ID.
     elif command.startswith('%message'):
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
-            return client_socket
-
         # Split the command into parts
         parts = command.split()
 
-        # Check if message ID is provided
+        # Check if Message ID is provided
         if len(parts) != 2:
             print("Usage: %message <message_id>")
+            return client_socket
+
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
             return client_socket
         
         message_id = parts[1]
@@ -237,9 +237,25 @@ async def parse_command(command, client_socket):
 
     # Handle the %groupjoin command to join a specified group by ID.
     elif command.startswith('%groupjoin'):
-        group_id = command.split()[1]
+        # Split the command into parts
+        parts = command.split()
+
+        # Check if Group ID is provided.
+        if len(parts) != 2:
+            print("Usage: %groupjoin <group_id>")
+            return client_socket
+        
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
+            return client_socket
+
+        group_id = parts[1]
         # Send the %groupjoin command with the specified group ID to join the group.
         send_command(client_socket, '%groupjoin', group_id)
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %groupjoin command:", response)
+        return client_socket
 
     # Handle the %grouppost command, checking for all required parameters.
     elif command.startswith('%grouppost'):

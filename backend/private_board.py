@@ -12,18 +12,13 @@ class PrivateBoard:
 
     def join_group(self, user, group_id):
         """Adds the user to the specified group, creating the group if it doesn't exist."""
-        if user not in self.users:
-            return f"User {user} not found."
         
-        # Initialize the group with members and messages if it doesn’t exist
-        if group_id not in self.groups:
-            self.groups[group_id] = {'members': set(), 'messages': []}
-        
-        # Add user to the group
-        self.groups[group_id]['members'].add(user)
-        self.users[user]['groups'].add(group_id)
-        
-        return f"{user} joined group {group_id}."
+        # Ensure the user is not already in the group
+        if user not in self.members:
+            self.members.add(user)  # Add user to members set
+            return f"{user} joined group {group_id}."
+        else:
+            return f"User {user} is already a member of group {group_id}."
 
     def post_to_group(self, group_id, subject, content):
         """

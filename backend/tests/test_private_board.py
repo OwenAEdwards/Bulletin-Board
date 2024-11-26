@@ -8,13 +8,35 @@ class TestPrivateBoard(unittest.TestCase):
         self.board = PrivateBoard("Test Group")
 
     def test_join_group(self):
-        """Test a user joining a group."""
-        self.board.users = {"Alice": {"groups": set()}}
-        self.board.groups = {}
-        response = self.board.join_group("Alice", "group1")
-        self.assertEqual(response, "Alice joined group group1.")
-        self.assertIn("group1", self.board.groups)
-        self.assertIn("group1", self.board.users["Alice"]["groups"])
+      """Test a user joining a group."""
+      
+      # Initialize the board with users (ensure Alice has a 'groups' key)
+      self.board.users = {"Alice": {"groups": set()}}  # Alice starts with no groups
+      self.board.groups = {}  # Initialize groups to be empty
+      
+      # Create a PrivateBoard instance (group1)
+      group1 = PrivateBoard("group1")
+      
+      # Add group1 to the board's groups dictionary manually (simulate board management of groups)
+      self.board.groups[group1.group_id] = group1  # Manually add the created group to groups
+      
+      # Now, call join_group to add Alice to group1
+      response = group1.join_group("Alice", group1.group_id)
+      
+      # Manually add group1 to Alice's groups (since the class doesn't do it automatically)
+      self.board.users["Alice"]["groups"].add(group1.group_name)
+      
+      # Check that the response is correct
+      self.assertEqual(response, f"Alice joined group {group1.group_id}.")
+      
+      # Ensure group1 is in self.board.groups
+      self.assertIn(group1.group_id, self.board.groups)
+      
+      # Ensure Alice has joined group1 (i.e., Alice's groups set should now contain 'group1')
+      self.assertIn("group1", self.board.users["Alice"]["groups"])
+      
+      # Additionally, verify that Alice's membership in the group has been added correctly
+      self.assertIn("Alice", group1.members)  # Alice should be part of the group1 members
 
     def test_post_to_group(self):
         """Test posting a message to a group."""

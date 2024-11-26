@@ -77,21 +77,38 @@ class TestSocketServer(unittest.TestCase):
         mock_client_socket.send.assert_called_with(b'Goodbye!\r\n')
 
     @patch('socket_server.PrivateBoard')
-    def test_private_board_join(self, MockPrivateBoard):
+    @patch('socket_server.client_sessions')
+    def test_private_board_join(self, mock_client_sessions, MockPrivateBoard):
         mock_private_board = MockPrivateBoard.return_value
         mock_client_socket = MagicMock()
-        private_boards = {'group1': mock_private_board}  # Mock for private_boards
+
+        # Initialize the private_boards as a list of PrivateBoard instances
+        mock_private_board.group_id = 1  # Ensure that the group ID matches the command's parameter
+        private_boards = [mock_private_board]  # Mock for private_boards list
+        
+        # Set up the mock client commands
         mock_client_socket.recv.side_effect = [
-            b'%private group1 username',  # Simulate a private group join command
-            b'%exit'
+            b'%join username',  # Simulate joining the public board with a username
+            b'%groupjoin 1',    # Simulate a private group join command (group_id = 1)
+            b'%exit'            # Simulate exit after the commands
         ]
-
-        mock_private_board.join_group.return_value = "username joined group1."
-
+        
+        # Set the username for the mock client in client_sessions
+        mock_client_sessions.__getitem__.return_value = {'username': 'username'}
+        
+        # Set up the mock behavior for join_group
+        mock_private_board.join_group.return_value = "username joined group 1."
+        
+        # Call the function being tested
         socket_server.handle_client(mock_client_socket, MagicMock(), private_boards)
 
-        mock_private_board.join_group.assert_called_once_with('username', 'group1')
-        mock_client_socket.send.assert_any_call(b'username joined group1.\r\n')
+        # Ensure join_group is called once with the expected arguments
+        mock_private_board.join_group.assert_called_once_with('username', 1)  # Group ID is 1
+        
+        # Check if the correct response is sent to the client
+        mock_client_socket.send.assert_any_call(b'username joined group 1.\r\n')
+        
+        # Ensure the exit message is also sent
         mock_client_socket.send.assert_called_with(b'Goodbye!\r\n')
 
 if __name__ == '__main__':

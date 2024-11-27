@@ -34,7 +34,7 @@ class TestSocketServer(unittest.TestCase):
         private_boards = MagicMock()  # Mock for private_boards
         mock_client_socket.recv.side_effect = [
             b'%join username',  # First command to join
-            b'%post Alice 2024-10-28 12:00 Subject Content',  # Post command after user joins
+            b'%post Alice 2024-10-28 12:00 Subject | Content',  # Post command after user joins
             b'%exit'  # Exit command to end the client session
         ]
 

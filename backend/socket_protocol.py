@@ -48,15 +48,25 @@ def parse_client_command(message):
         return command, [params[0].strip()] if params else []
 
     elif command == '%post':
-        # Ensure we have at least four parameters: sender, post_date (with time), subject, and content
-        if len(params) < 5:  # Adjusted to account for post_date as two fields
-            print("Usage: %post <sender> <post_date> <subject> <content>")
+        # Ensure we have the expected number of parameters (sender, post_date, subject|content)
+        if len(params) < 4:
+            print("Usage: %post <sender> <post_date> <subject>|<content>")
             return command, []
         
         sender = params[0].strip()
         post_date = f"{params[1].strip()} {params[2].strip()}"  # Combine date and time
-        subject = params[3].strip()
-        content = " ".join(params[4:]).strip()  # Join remaining parts as content
+
+        try:
+            # Combine everything after post_date into one string and split by the first |
+            subject_and_content = " ".join(params[3:]).strip()
+            subject, content = subject_and_content.split('|', maxsplit=1)
+            subject = subject.strip()
+            content = content.strip()
+        except ValueError:
+            # Handle missing | separator
+            print("Error: Missing | separator in %post command.")
+            return command, []
+
         return command, [sender, post_date, subject, content]
 
     elif command == '%grouppost':

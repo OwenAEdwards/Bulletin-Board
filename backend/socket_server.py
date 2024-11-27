@@ -59,14 +59,14 @@ def handle_client(client_socket, public_board, private_boards):
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%post':
-                # Ensure the client has provided the correct number of parameters (4: sender, post_date, subject, content).
+                # Ensure the client has provided the correct number of parameters (sender, post_date, subject, content)
                 if len(params) == 4:
                     sender = params[0]
                     post_date = params[1]
                     subject = params[2]
                     content = params[3]
 
-                    # Verify that the sender has joined the bulletin board.
+                    # Verify that the sender has joined the bulletin board
                     if sender not in public_board.list_users():
                         response = "Error: You must join the bulletin board first using %join <username>."
                     else:
@@ -75,11 +75,12 @@ def handle_client(client_socket, public_board, private_boards):
                         print(f"Calling add_post with: sender={sender}, post_date={post_date}, subject={subject}")
                         
                         response = f"Message posted with ID {message_id}."
-                        print(f"[DEBUG] %post response: {response}")  # Debug line
+                        print(f"[DEBUG] %post response: {response}")
                 else:
                     # Error message if the wrong number of parameters is provided
-                    response = "Error: Incorrect parameters for %post. Usage: %post <subject> <content>."
+                    response = "Error: Incorrect parameters for %post. Usage: %post <subject>|<content>."
                 client_socket.send((response + CRLF).encode('utf-8'))
+
 
             elif command == '%users':
                 # Retrieve the list of users from the bulletin board.

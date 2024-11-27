@@ -132,23 +132,22 @@ async def parse_command(command, client_socket):
             print("You must join the bulletin board first using %join <username>.")
             return client_socket
 
-        # Split only once after the command to get the subject and content as a single string
-        parts = command.split(maxsplit=2)
-
-        # Validate if subject and content are provided.
-        if len(parts) < 3:
-            print("Usage: %post <subject> <content>")
+        # Split once using | to separate subject and content
+        try:
+            _, rest = command.split(maxsplit=1)  # Extract everything after %post
+            subject, content = rest.split('|', maxsplit=1)  # Split subject and content by |
+            subject = subject.strip()  # Clean up extra whitespace
+            content = content.strip()
+        except ValueError:
+            print("Usage: %post <subject>|<content>")
             return client_socket
-
-        # Extract the subject and content from the split parts
-        _, subject, content = parts
 
         # Generate post date on the client-side for consistency
         from datetime import datetime
         post_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Construct the final message with all parts as a single string
-        final_message = f"%post {username} {post_date} {subject} {content}"
+        # Construct the final message with the | separator intact
+        final_message = f"%post {username} {post_date} {subject}|{content}"
 
         print("[DEBUG] Client socket before sending %post:", client_socket)
 

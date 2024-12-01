@@ -35,27 +35,24 @@ def handle_client(client_socket, public_board, private_boards):
             # Handle the different commands the client can send.
             if command == '%connect':
                 # Connect command expected two parameters: address and port.
-                if len(params) == 2:
+                if len(params) == 3:
                     address = params[0]
                     port = params[1]
+                    username = params[2]
+
+                    # Set username in session data
+                    client_sessions[client_socket]['username'] = username
+
                     response = f"Connected to the bulletin board server at {address}:{port}."
                 else:
                     response = "Error: %connect requires address and port."
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%join':
-                # Join command expects one parameter: the username.
-                if len(params) == 1:
-                    username = params[0]
-                    print("Calling add_user with:", username)
-                    # Set username in session data
-                    client_sessions[client_socket]['username'] = username
-                    # Add the user to the bulletin board.
-                    public_board.add_user(username)
-                    response = f"{username} has joined the bulletin board."
-                else:
-                    # Error message if the wrong number of parameters is provided.
-                    response = "Error: Incorrect parameters for %join."
+                print("Calling add_user with:", username)
+                # Add the user to the bulletin board.
+                public_board.add_user(username)
+                response = f"{username} has joined the bulletin board."
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%post':

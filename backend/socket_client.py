@@ -90,7 +90,7 @@ async def parse_command(command, client_socket):
     # Handle the %connect command, splitting additional parameters if provided.
     if command.startswith('%connect'):
         params = command.split()[1:]  # Capture any additional parameters.
-        if len(params) != 2:
+        if len(params) < 2:
             print("Usage: %connect <address> <port>")
             return client_socket
         host, port = params
@@ -98,28 +98,23 @@ async def parse_command(command, client_socket):
             port = int(port)  # Convert port to integer
             # Attempt to connect to the server
             client_socket = connect_to_server(host, port)
-            # print("client_socket, inside parse_command(), is:",client_socket)
         except Exception as e:
             print(f"Failed to connect: {e}")
             client_socket = None
             return client_socket
+        # Combine host, port, and username into a single string, separated by spaces
+        connect_params = f"{host} {port} {username}"
         # Send the %connect command to the server with any extra parameters.
-        send_command(client_socket, '%connect', *params)
-        await receive_response(client_socket)
+        #print("connect_params", connect_params)
+        send_command(client_socket, '%connect', connect_params)
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %connect command:", response)
         return client_socket
-        # print("client_socket, after sending data, is:",client_socket)
 
     # Handle the %join command to join with a specified username.
     elif command.startswith('%join'):
-        # Prevent joining if already logged in
-        if username:
-            print("You are already joined as:", username)
-            return client_socket
-        
-        username = command.split()[1]
-        print("[DEBUG] Client socket before sending %join:", client_socket)
         # Send the %join command along with the specified username to the server.
-        send_command(client_socket, '%join', username)
+        send_command(client_socket, '%join')
         # Wait for server confirmation of join
         response = await receive_response(client_socket)
         print("[DEBUG] Response after %join command:", response)
@@ -127,11 +122,6 @@ async def parse_command(command, client_socket):
 
     # Handle the %post command, verifying the correct number of arguments.
     elif command.startswith('%post'):
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
-            return client_socket
-
         # Split once using | to separate subject and content
         try:
             _, rest = command.split(maxsplit=1)  # Extract everything after %post
@@ -149,8 +139,6 @@ async def parse_command(command, client_socket):
         # Construct the final message with the | separator intact
         final_message = f"%post {username} {post_date} {subject}|{content}"
 
-        print("[DEBUG] Client socket before sending %post:", client_socket)
-
         # Send the %post command with all parameters to the server.
         send_command(client_socket, final_message)
 
@@ -162,11 +150,6 @@ async def parse_command(command, client_socket):
 
     # Handle the %users command to request the list of users.
     elif command.startswith('%users'):
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
-            return client_socket
-
         # Send the %users command to the server without additional parameters
         send_command(client_socket, '%users')
         response = await receive_response(client_socket)
@@ -175,17 +158,10 @@ async def parse_command(command, client_socket):
 
     # Handle the %leave command to leave with a specified username.
     elif command.startswith('%leave'):
-        # Check if the client is logged in as a user
-        if username:
-            # Send the %leave command to disconnect the specified user from the server.
-            send_command(client_socket, '%leave', username)
-            response = await receive_response(client_socket)
-            print("[DEBUG] Response after %leave command:", response)
-
-            # Clear the username afterwards
-            username = None
-        else:
-            print("You are not currently joined.")
+        # Send the %leave command to disconnect the specified user from the server.
+        send_command(client_socket, '%leave', username)
+        response = await receive_response(client_socket)
+        print("[DEBUG] Response after %leave command:", response)
         return client_socket
 
     # Handle the %message command to request a specific message by ID.
@@ -196,11 +172,6 @@ async def parse_command(command, client_socket):
         # Check if Message ID is provided
         if len(parts) != 2:
             print("Usage: %message <message_id>")
-            return client_socket
-
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
             return client_socket
         
         message_id = parts[1]
@@ -243,11 +214,6 @@ async def parse_command(command, client_socket):
         if len(parts) != 2:
             print("Usage: %groupjoin <group_id>")
             return client_socket
-        
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
-            return client_socket
 
         group_id = parts[1]
         # Send the %groupjoin command with the specified group ID to join the group.
@@ -258,11 +224,6 @@ async def parse_command(command, client_socket):
 
     # Handle the %grouppost command, verifying the correct number of arguments.
     elif command.startswith('%grouppost'):
-        # Validate if the client has joined (username must be defined).
-        if not username:
-            print("You must join the bulletin board first using %join <username>.")
-            return client_socket
-
         # Split once to separate group ID, subject, and content.
         try:
             _, rest = command.split(maxsplit=1)  # Extract everything after %grouppost
@@ -363,18 +324,17 @@ async def parse_command(command, client_socket):
         print("Unknown command.")
         return client_socket
 
-    # After sending the command, wait for the server's response.
-    await receive_response(client_socket)
-    return client_socket
-
 async def main():
     # Startwith no connection.
     client_socket = None
 
+    # Set username.
+    global username
+    username = input("Enter username: ")
+
     # Command loop.
     while True:
         command = input("Enter command: ")
-        # print("client_socket, inside main(), is:",client_socket)
         # Call parse_command to handle the command and update client_socket.
         if command.startswith('%connect') or client_socket:
             client_socket = await parse_command(command, client_socket)

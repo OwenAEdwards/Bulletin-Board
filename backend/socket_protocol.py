@@ -33,17 +33,26 @@ def parse_client_command(message):
     params = command_parts[1].split()  # Split the parameters by spaces
 
     # Handling specific commands based on their structure.
-    if command in ['%users', '%leave', '%exit', '%groups']:
+    if command in ['%join', '%users', '%leave', '%exit', '%groups']:
         # Commands that do not require parameters
         return command, []
 
     elif command == '%connect':
-        if len(params) != 2:
-            print("Usage: %connect <address> <port>")
+        # Ensure there are at least 3 parts: address, port, and username
+        if len(params) < 3:
             return command, []
-        return command, [params[0].strip(), params[1].strip()]
 
-    elif command in ['%join', '%message', '%groupjoin', '%groupusers', '%groupleave']:
+        # Extract the address and port
+        address = params[0].strip()
+        port = params[1].strip()
+
+        # Combine the rest of the parameters as the username
+        username = " ".join(params[2:]).strip()
+
+        # Return the command along with the address, port, and username
+        return command, [address, port, username]
+
+    elif command in ['%message', '%groupjoin', '%groupusers', '%groupleave']:
         # Commands expecting exactly one parameter
         return command, [params[0].strip()] if params else []
 

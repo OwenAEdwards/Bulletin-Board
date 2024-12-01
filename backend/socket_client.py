@@ -295,15 +295,41 @@ async def parse_command(command, client_socket):
 
     # Handle the %groupusers command to list users in a specified group.
     elif command.startswith('%groupusers'):
-        group_id = command.split()[1]
-        # Send the %groupusers command with group ID to retrieve the list of users in that group.
-        send_command(client_socket, '%groupusers', group_id)
+        try:
+            # Parse the command to get the group ID.
+            _, group_id = command.split(maxsplit=1)
+            group_id = group_id.strip()
+
+            # Send the %groupusers command with the group ID to the server.
+            send_command(client_socket, f"%groupusers {group_id}")
+
+            # Receive and display the response from the server.
+            response = await receive_response(client_socket)
+            print(f"Users in group {group_id}:\n{response}")
+            return client_socket
+        except ValueError:
+            # Error message for invalid command format.
+            print("Usage: %groupusers <group_id>")
+            return client_socket
 
     # Handle the %groupleave command to leave a specified group.
     elif command.startswith('%groupleave'):
-        group_id = command.split()[1]
-        # Send the %groupleave command with the group ID to disconnect from that group.
-        send_command(client_socket, '%groupleave', group_id)
+        try:
+            # Parse the command to get the group ID.
+            _, group_id = command.split(maxsplit=1)
+            group_id = group_id.strip()
+
+            # Send the %groupleave command with the group ID to the server.
+            send_command(client_socket, f"%groupleave {group_id}")
+
+            # Receive and display the response from the server.
+            response = await receive_response(client_socket)
+            print(response)
+            return client_socket
+        except ValueError:
+            # Error message for invalid command format.
+            print("Usage: %groupleave <group_id>")
+            return client_socket
 
     # Handle the %groupmessage command to fetch a specific message from a group.
     elif command.startswith('%groupmessage'):

@@ -188,28 +188,58 @@ def handle_client(client_socket, public_board, private_boards):
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupusers':
-                # Group Users command expects one parameter: group_id.
+                # Ensure the command has exactly one parameter (the group ID/name).
                 if len(params) == 1:
-                    group_id = params[0]
-                    # Retrieve the list of users in the specified group.
-                    users = bulletin_board.list_group_users(group_id)
-                    # Format the list as a newline-separated string if there are users in the group;
-                    # otherwise, send a response indicating no users are in the group.
-                    response = "\n".join(users) if users else "No users in the group."
+                    group_id = int(params[0].strip())
+
+                    # Find the target group by group ID.
+                    target_board = next((board for board in private_boards if board.group_id == group_id), None)
+                    
+                    if not target_board:
+                        # If the group does not exist, send an error message.
+                        response = f"Error: Group '{group_id}' does not exist."
+                    else:
+                        # Retrieve the list of users in the group.
+                        users = target_board.members
+                        # Format the list of users as a newline-separated string, or send an appropriate response if empty.
+                        response = "\n".join(users) if users else f"No users in group '{group_id}'."
                 else:
-                    # Error message if the wrong number of parameters is provided.
-                    response = "Error: %groupusers requires group ID/name."
+                    # Error response for incorrect usage.
+                    response = "Error: %groupusers requires exactly one parameter: group ID."
+
+                # Send the response back to the client.
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupleave':
-                # Group Leave command expects one parameter: group_id.
+                # Ensure the command has exactly one parameter (the group ID/name).
                 if len(params) == 1:
-                    group_id = params[0]
-                    # Attempt to leave the specified group.
-                    response = bulletin_board.leave_group(group_id)
+                    group_id = int(params[0].strip())
+
+                    # Find the target group by group ID.
+                    target_board = next((board for board in private_boards if board.group_id == group_id), None)
+
+                    if not target_board:
+                        # If the group does not exist, send an error message.
+                        response = f"Error: Group '{group_id}' does not exist."
+                    else:
+                        # Check if the user is part of the group.
+                        if username in target_board.members:
+                            # Remove the user from the group.
+                            target_board.members.remove(username)
+                            response = f"{username} has left group {group_id}."
+                            
+                            # If the group is now empty, delete it.
+                            if not target_board.members:
+                                private_boards.remove(target_board)
+                                response += f" Group {group_id} has been deleted as it has no members."
+                        else:
+                            # User is not a member of the group.
+                            response = f"Error: {username} is not a member of group '{group_id}'."
                 else:
-                    # Error message if the wrong number of parameters is provided.
-                    response = "Error: %groupleave requires group ID/name."
+                    # Error response for incorrect usage.
+                    response = "Error: %groupleave requires exactly one parameter: group ID."
+
+                # Send the response back to the client.
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupmessage':

@@ -95,7 +95,6 @@ def parse_client_command(message):
     elif command == '%groupmessage':
         # Command expecting two parameters
         if len(params) < 2:
-            print("Usage: %groupmessage <group_id> <message_id>")
             return command, []
         return command, params[:2]
 

@@ -20,20 +20,20 @@ class PrivateBoard:
         else:
             return f"User {user} is already a member of group {group_id}."
 
-    def post_to_group(self, group_id, subject, content):
+    def post_to_group(self, sender, post_date, subject, content):
         """
-        Posts a message to a specific group, if the group exists.
+        Posts a message to the private group, including sender and post date.
         """
-        if group_id in self.groups:
-            message_id = next(self.message_counter)
-            message = {
-                'id': message_id,
-                'subject': subject,
-                'content': content
-            }
-            self.groups[group_id]['messages'].append(message)  # Append message to group's messages list
-            return message_id  # Return only the message ID as expected by the test
-        return f"Group {group_id} not found."
+        message_id = next(self.message_counter)
+        message = {
+            'id': message_id,
+            'sender': sender,
+            'date': post_date,
+            'subject': subject,
+            'content': content
+        }
+        self.messages.append(message)  # Append the message to the group's message list
+        return message_id  # Return the unique message ID
 
     def list_group_users(self, group_id):
         """Returns a list of users in the specified group."""
@@ -57,8 +57,11 @@ class PrivateBoard:
         """
         Retrieves a specific message from a group based on its ID.
         """
-        if group_id in self.groups:
-            for message in self.groups[group_id]['messages']:
-                if message['id'] == message_id:
-                    return f"{message['subject']}: {message['content']}"
-        return f"Message {message_id} not found in group {group_id}."
+        # Search for the message with the given ID.
+        for message in self.messages:
+            if message['id'] == int(message_id):
+                # Format the message summary similar to the public board's `%message`.
+                return f"{message['sender']} on {message['date']}: {message['subject']}"
+        
+        # Return an error if the message is not found.
+        return f"Error: Message ID '{message_id}' not found in group '{group_id}'."

@@ -160,17 +160,31 @@ def handle_client(client_socket, public_board, private_boards):
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%grouppost':
-                # Group Post command expects at least three parameters: group_id, subject, and content.
-                if len(params) >= 3:
-                    group_id = params[0]
-                    subject = params[1]
-                    # Join the remaining parameters to form the message content/body.
-                    content = " ".join(params[2:])
-                    # Post the message to the specified group and return a response indicating success.
-                    response = bulletin_board.post_to_group(group_id, subject, content)
+                # Unpack parsed parameters: sender, post_date, group_id, subject, content.
+                if len(params) != 5:
+                    response = "Error: Invalid parameters for %grouppost."
                 else:
-                    # Error message if the wrong number of parameters is provided.
-                    response = "Error: %grouppost requires group ID, subject, and content."
+                    sender, post_date, group_id, subject, content = params
+                    group_id = int(group_id)
+
+                    # Validate the sender is in the session and joined the server.
+                    if not client_sessions[client_socket].get('username') or client_sessions[client_socket]['username'] != sender:
+                        response = "Error: You must join the bulletin board first using %join <username>."
+                    else:
+                        # Check if the group exists in `private_boards`.
+                        target_board = next((board for board in private_boards if board.group_id == group_id), None)
+
+                        if target_board is None:
+                            response = f"Error: Group '{group_id}' does not exist."
+                        elif sender not in target_board.members:
+                            # Ensure the sender is a member of the group.
+                            response = f"Error: You are not a member of the group '{group_id}'."
+                        else:
+                            # Add the post to the specified group's private board.
+                            message_id = target_board.post_to_group(sender, post_date, subject, content)
+                            response = f"Group message posted with ID {message_id} to group '{group_id}'."
+
+                # Send the response back to the client.
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupusers':
@@ -199,15 +213,30 @@ def handle_client(client_socket, public_board, private_boards):
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%groupmessage':
-                # Group Message command expects two parameters: group_id and message_id.
+                # Ensure the command has the correct number of parameters.
                 if len(params) == 2:
-                    group_id = params[0]
-                    message_id = params[1]
-                    # Retrieve the message content for the specified message ID in the specified group.
-                    response = bulletin_board.get_group_message(group_id, message_id)
+                    group_id, message_id = params
+                    group_id = group_id.strip()
+                    message_id = message_id.strip()
+
+                    # Validate numeric parameters.
+                    if not group_id.isdigit() or not message_id.isdigit():
+                        response = "Error: Group ID and Message ID must be numeric."
+                    else:
+                        group_id = int(group_id)
+                        # Find the target group by group ID.
+                        target_board = next((board for board in private_boards if board.group_id == group_id), None)
+                        
+                        if not target_board:
+                            response = f"Error: Group '{group_id}' does not exist."
+                        else:
+                            # Retrieve the message from the group.
+                            message = target_board.get_group_message(int(group_id), int(message_id))
+                            response = message  # The `get_group_message` method returns the appropriate message or an error.
                 else:
-                    # Error message if the wrong number of parameters is provided.
-                    response = "Error: %groupmessage requires group ID and message ID."
+                    response = "Error: %groupmessage requires exactly 2 parameters: group ID and message ID."
+
+                # Send the response back to the client.
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             else:

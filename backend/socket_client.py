@@ -256,18 +256,42 @@ async def parse_command(command, client_socket):
         print("[DEBUG] Response after %groupjoin command:", response)
         return client_socket
 
-    # Handle the %grouppost command, checking for all required parameters.
+    # Handle the %grouppost command, verifying the correct number of arguments.
     elif command.startswith('%grouppost'):
-        parts = command.split(maxsplit=3)  # Split command to capture all arguments.
-        # Validate if all necessary parts (group ID, subject, content) are provided.
-        if len(parts) < 4:
-            print("Usage: %grouppost <group_id> <subject> <content>")
-            # Exit function without sending command if parameters are missing.
+        # Validate if the client has joined (username must be defined).
+        if not username:
+            print("You must join the bulletin board first using %join <username>.")
             return client_socket
-        # Unpack the command arguments.
-        _, group_id, subject, content = parts
-        # Send the %grouppost command with group ID, subject, and content to post in the group.
-        send_command(client_socket, '%grouppost', group_id, subject, content)
+
+        # Split once to separate group ID, subject, and content.
+        try:
+            _, rest = command.split(maxsplit=1)  # Extract everything after %grouppost
+            group_id, rest = rest.split(maxsplit=1)  # Separate group_id from the rest
+            subject, content = rest.split('|', maxsplit=1)  # Split subject and content by |
+            group_id = group_id.strip()
+            subject = subject.strip()
+            content = content.strip()
+        except ValueError:
+            print("Usage: %grouppost <group_id> <subject>|<content>")
+            return client_socket
+
+        # Generate post date on the client-side for consistency.
+        from datetime import datetime
+        post_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Construct the final message with the | separator intact.
+        final_message = f"%grouppost {username} {post_date} {group_id} {subject}|{content}"
+
+        print("[DEBUG] Client socket before sending %grouppost:", client_socket)
+
+        # Send the %grouppost command with all parameters to the server.
+        send_command(client_socket, final_message)
+
+        # Receive the response after each command.
+        response = await receive_response(client_socket)
+
+        print("[DEBUG] Response after %grouppost command:", response)
+        return client_socket
 
     # Handle the %groupusers command to list users in a specified group.
     elif command.startswith('%groupusers'):
@@ -281,11 +305,32 @@ async def parse_command(command, client_socket):
         # Send the %groupleave command with the group ID to disconnect from that group.
         send_command(client_socket, '%groupleave', group_id)
 
-    # Handle the %groupmessage command to get a specific message in a group.
+    # Handle the %groupmessage command to fetch a specific message from a group.
     elif command.startswith('%groupmessage'):
-        group_id, message_id = command.split()[1:3]
-        # Send the %groupmessage command with both group ID and message ID to fetch the message.
-        send_command(client_socket, '%groupmessage', group_id, message_id)
+        try:
+            # Parse group ID and message ID from the command.
+            _, group_id, message_id = command.split(maxsplit=2)
+            
+            # Validate the parameters.
+            group_id = group_id.strip()
+            message_id = message_id.strip()
+            
+            if not group_id.isdigit() or not message_id.isdigit():
+                print("Error: Group ID and Message ID must be numeric.")
+                return client_socket
+
+            # Construct the command to send to the server.
+            final_message = f"%groupmessage {group_id} {message_id}"
+            send_command(client_socket, final_message)
+
+            # Await and print the response from the server.
+            response = await receive_response(client_socket)
+            print(f"[Server Response] {response}")
+            return client_socket
+
+        except ValueError:
+            print("Usage: %groupmessage <group_id> <message_id>")
+            return client_socket
 
     # Handle unknown commands.
     else:

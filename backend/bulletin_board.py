@@ -3,9 +3,12 @@ import itertools
 class BulletinBoard:
     def __init__(self):
         self.users = {}  # Store users in a dictionary for quick access
-        self.messages = []  # List to store public messages
+        self.messages = [
+            {'id': 1, 'sender': 'user1', 'date': '2024-12-02 16:38:44', 'subject': 'subj here', 'content': 'hello world'},
+            {'id': 2, 'sender': 'user2', 'date': '2024-12-02 16:46:45', 'subject': 'another one', 'content': 'hello world again'}
+        ]  # List to store public messages
         self.groups = {}  # Dictionary to store groups with members and messages
-        self.message_counter = itertools.count(1)  # To assign unique message IDs
+        self.message_counter = itertools.count(3)  # To assign unique message IDs
 
     def add_user(self, user):
         """Adds a new user to the bulletin board if they are not already present."""
@@ -47,5 +50,5 @@ class BulletinBoard:
         """Finds and returns the content of a message with the given ID."""
         for message in self.messages:
             if message['id'] == message_id:
-                return f"{message['sender']} on {message['date']}: {message['subject']}"
+                return f"{message['sender']} on {message['date']}: {message['content']}"
         return None

@@ -52,8 +52,10 @@ def handle_client(client_socket, public_board, private_boards):
                 print("Calling add_user with:", username)
                 # Add the user to the bulletin board.
                 public_board.add_user(username)
-                response = f"{username} has joined the bulletin board. Users active on this board: {public_board.list_users()}"
-                client_socket.send((response + CRLF).encode('utf-8'))
+                response = f"{username} has joined the bulletin board."
+                users_active = f" Users active on this board: {public_board.list_users()}"
+                last_two_messages = f"\n{public_board.get_message_content(len(public_board.messages))}\n{public_board.get_message_content(len(public_board.messages)-1)}"
+                client_socket.send((response + users_active + last_two_messages + CRLF).encode('utf-8'))
 
             elif command == '%post':
                 # Ensure the client has provided the correct number of parameters (sender, post_date, subject, content)
@@ -148,13 +150,15 @@ def handle_client(client_socket, public_board, private_boards):
                     if matching_group:
                         # Attempt to join the specified group by ID
                         response = matching_group.join_group(username, group_id)
+                        group_users_active = f" Users active in group {group_id}: {matching_group.members}"
+                        last_two_group_messages = f"\n{matching_group.get_group_message(group_id, len(matching_group.messages))}\n{matching_group.get_group_message(group_id, len(matching_group.messages)-1)}"
                     else:
                         # Error message if the group does not exist
                         response = f"Error: Group '{group_id}' does not exist."
                 else:
                     # Error message if the wrong number of parameters is provided.
                     response = "Error: %groupjoin requires group ID."
-                client_socket.send((response + CRLF).encode('utf-8'))
+                client_socket.send((response + group_users_active + last_two_group_messages + CRLF).encode('utf-8'))
 
             elif command == '%grouppost':
                 # Unpack parsed parameters: sender, post_date, group_id, subject, content.

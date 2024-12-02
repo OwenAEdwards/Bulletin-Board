@@ -7,8 +7,11 @@ class PrivateBoard:
         self.group_name = group_name  # Unique name for the group
         self.group_id = next(PrivateBoard.group_id_counter)  # Automatically assign a unique group ID
         self.members = set()  # Members with access to this private board
-        self.messages = []  # Messages specific to this group
-        self.message_counter = itertools.count(1)  # Unique message IDs
+        self.messages = [
+            {'id': 1, 'sender': 'user3', 'date': '2024-12-02 16:36:44', 'subject': 'PRIVATE subj here', 'content': 'PRIVATE hello world'},
+            {'id': 2, 'sender': 'user4', 'date': '2024-12-02 16:42:45', 'subject': 'another SECRET one', 'content': 'hello world again but SECRET'}
+        ]  # Messages specific to this group
+        self.message_counter = itertools.count(3)  # Unique message IDs
 
     def join_group(self, user, group_id):
         """Adds the user to the specified group, creating the group if it doesn't exist."""
@@ -61,7 +64,7 @@ class PrivateBoard:
         for message in self.messages:
             if message['id'] == int(message_id):
                 # Format the message summary similar to the public board's `%message`.
-                return f"{message['sender']} on {message['date']}: {message['subject']}"
+                return f"{message['sender']} on {message['date']}: {message['content']}"
         
         # Return an error if the message is not found.
         return f"Error: Message ID '{message_id}' not found in group '{group_id}'."

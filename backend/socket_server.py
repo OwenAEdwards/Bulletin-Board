@@ -52,7 +52,7 @@ def handle_client(client_socket, public_board, private_boards):
                 print("Calling add_user with:", username)
                 # Add the user to the bulletin board.
                 public_board.add_user(username)
-                response = f"{username} has joined the bulletin board."
+                response = f"{username} has joined the bulletin board. Users active on this board: {public_board.list_users()}"
                 client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%post':

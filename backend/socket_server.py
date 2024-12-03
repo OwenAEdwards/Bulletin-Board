@@ -166,7 +166,7 @@ def handle_client(client_socket, public_board, private_boards):
 
                     # Verify that the sender has joined the bulletin board
                     if sender not in public_board.list_users():
-                        response = "Error: You must join the bulletin board first using %join <username>."
+                        response = "Error: You must join the bulletin board first using %join."
                     else:
                         # Generate a unique message ID and add the post to the bulletin board
                         message_id = public_board.add_post(sender, post_date, subject, content)

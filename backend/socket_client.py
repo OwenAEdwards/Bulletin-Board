@@ -74,7 +74,7 @@ def send_command(client_socket, command, *params):
         client_socket.send(formatted_command.encode('utf-8'))
 
         # Print the formatted command to the console for confirmation and debugging.
-        print(f"Sent: {formatted_command.strip()}")
+        #print(f"Sent: {formatted_command.strip()}")
     else:
         print("Attempted to send an empty command, skipping send.")
 
@@ -149,7 +149,7 @@ async def parse_command(command, client_socket):
         #print("connect_params", connect_params)
         send_command(client_socket, '%connect', connect_params)
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %connect command:", response)
+        print(response)
         return client_socket
 
     # Handle the %join command to join with a specified username.
@@ -158,7 +158,7 @@ async def parse_command(command, client_socket):
         send_command(client_socket, '%join')
         # Wait for server confirmation of join
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %join command:", response)
+        print(response)
         return client_socket
 
     # Handle the %post command, verifying the correct number of arguments.
@@ -186,7 +186,7 @@ async def parse_command(command, client_socket):
         # Receive the response after each command
         response = await receive_response(client_socket)
 
-        print("[DEBUG] Response after %post command:", response)
+        print(response)
         return client_socket
 
     # Handle the %users command to request the list of users.
@@ -194,7 +194,7 @@ async def parse_command(command, client_socket):
         # Send the %users command to the server without additional parameters
         send_command(client_socket, '%users')
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %users command:", response)
+        print(response)
         return client_socket
 
     # Handle the %leave command to leave with a specified username.
@@ -202,7 +202,7 @@ async def parse_command(command, client_socket):
         # Send the %leave command to disconnect the specified user from the server.
         send_command(client_socket, '%leave', username)
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %leave command:", response)
+        print(response)
         return client_socket
 
     # Handle the %message command to request a specific message by ID.
@@ -219,7 +219,7 @@ async def parse_command(command, client_socket):
         # Send the %message command to retrieve the message with the specified ID.
         send_command(client_socket, '%message', message_id)
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %message command:", response)
+        print(response)
         return client_socket
 
     # Handle the %exit command to close the connection and end the program.
@@ -228,7 +228,7 @@ async def parse_command(command, client_socket):
         send_command(client_socket, '%exit')
         print("Exiting.")
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %exit command:", response)
+        print(response)
         # Close the socket connection.
         client_socket.close()
         client_socket = False
@@ -243,7 +243,7 @@ async def parse_command(command, client_socket):
         # Send the %groups command to retrieve the list of groups from the server.
         send_command(client_socket, '%groups')
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %groups command:", response)
+        print(response)
         return client_socket
 
     # Handle the %groupjoin command to join a specified group by ID.
@@ -260,7 +260,7 @@ async def parse_command(command, client_socket):
         # Send the %groupjoin command with the specified group ID to join the group.
         send_command(client_socket, '%groupjoin', group_id)
         response = await receive_response(client_socket)
-        print("[DEBUG] Response after %groupjoin command:", response)
+        print(response)
         return client_socket
 
     # Handle the %grouppost command, verifying the correct number of arguments.
@@ -284,15 +284,13 @@ async def parse_command(command, client_socket):
         # Construct the final message with the | separator intact.
         final_message = f"%grouppost {username} {post_date} {group_id} {subject}|{content}"
 
-        print("[DEBUG] Client socket before sending %grouppost:", client_socket)
-
         # Send the %grouppost command with all parameters to the server.
         send_command(client_socket, final_message)
 
         # Receive the response after each command.
         response = await receive_response(client_socket)
 
-        print("[DEBUG] Response after %grouppost command:", response)
+        print(response)
         return client_socket
 
     # Handle the %groupusers command to list users in a specified group.
@@ -353,7 +351,7 @@ async def parse_command(command, client_socket):
 
             # Await and print the response from the server.
             response = await receive_response(client_socket)
-            print(f"[Server Response] {response}")
+            print(response)
             return client_socket
 
         except ValueError:

@@ -12,21 +12,50 @@ client_sessions = {}
 # Dictionary to keep track of signal session data for each client
 signal_sessions = {}
 
-def broadcast_message(sender_socket, signal_code, username, target_board=None):
+def broadcast_message(sender_socket, signal_code, **kwargs):
     """
     Sends a message to all connected clients except the sender.
+
+    Parameters:
+    - sender_socket: The socket of the sender to exclude from broadcasting.
+    - signal_code: A string indicating the type of broadcast (e.g., JOIN_SIGNAL, LEAVE_SIGNAL, etc.).
+    - kwargs: Additional arguments specific to the broadcast type, e.g.:
+      - 'username' for %join/%leave.
+      - 'target_board' and 'username' for %groupjoin/%groupleave.
+      - 'post_summary' for %post.
+      - 'target_board' and 'post_summary' for %grouppost.
     """
     for client_socket, signal_socket in signal_sessions.items():
         if client_socket != sender_socket:  # Exclude the sender
-            # Skip sending if a group (e.g. %groupjoin or %groupleave) is specified and the client is not in that group
-            if target_board and client_sessions.get(client_socket, {}).get("username") not in target_board.members:
-                continue
+            # Determine if the client should receive this message
+            if "target_board" in kwargs:
+                target_board = kwargs["target_board"]
+                if isinstance(target_board, PrivateBoard):
+                    # Ensure the client is a member of the private board
+                    if client_sessions.get(client_socket, {}).get("username") not in target_board.members:
+                        continue
+                elif isinstance(target_board, BulletinBoard):
+                    if client_sessions.get(client_socket, {}).get("username") not in target_board.users:
+                        continue
+
             try:
-                if target_board:
-                    # Include the group in the message
-                    signal_socket.send((f"{signal_code} {username} {target_board.group_id}" + CRLF).encode('utf-8'))
+                # Construct the message based on the signal_code and kwargs
+                if signal_code in {"JOIN_SIGNAL", "LEAVE_SIGNAL"}:
+                    message = f"{signal_code} {kwargs['username']}"
+                elif signal_code in {"GROUP_JOIN_SIGNAL", "GROUP_LEAVE_SIGNAL"}:
+                    target_board = kwargs["target_board"]
+                    group_id = target_board.group_id
+                    message = f"{signal_code} {group_id} {kwargs['username']}"
+                elif signal_code == "POST_SIGNAL":
+                    message = f"{signal_code} {kwargs['post_summary']}"
+                elif signal_code == "GROUP_POST_SIGNAL":
+                    message = f"{signal_code} {kwargs['post_summary']}"
                 else:
-                    signal_socket.send((f"{signal_code} {username}" + CRLF).encode('utf-8'))
+                    print(f"Unknown signal code: {signal_code}")
+                    continue
+
+                # Send the constructed message
+                signal_socket.send((message + CRLF).encode('utf-8'))
             except socket.error as e:
                 print(f"Error sending to client: {e}")
 
@@ -42,21 +71,30 @@ def handle_signal_client(signal_socket, client_socket):
                 print(f"Received signal: {message}")
                 # Process the signal here (JOIN/LEAVE)
                 if message.startswith("JOIN_SIGNAL"):
-                    _, username = message.split(maxsplit=1)
+                    _, target_board, username = message.split(maxsplit=2)
                     print(f"User joined: {username}")
-                    broadcast_message(client_socket, 'JOIN_SIGNAL', username)  # Call broadcast_message to notify others
+                    broadcast_message(client_socket, 'JOIN_SIGNAL', target_board, username=username)  # Call broadcast_message to notify others
                 elif message.startswith("LEAVE_SIGNAL"):
-                    _, username = message.split(maxsplit=1)
+                    _, target_board, username = message.split(maxsplit=2)
                     print(f"User left: {username}")
-                    broadcast_message(client_socket, 'LEAVE_SIGNAL', username)  # Call broadcast_message to notify others
+                    broadcast_message(client_socket, 'LEAVE_SIGNAL', target_board=target_board, username=username)  # Call broadcast_message to notify others
                 elif message.startswith("GROUP_JOIN_SIGNAL"):
-                    _, username, group = message.split(maxsplit=2)
+                    _, group, username = message.split(maxsplit=2)
                     print(f"User {username} joined group {group}")
-                    broadcast_message(client_socket, "GROUP_JOIN_SIGNAL", username, group)
+                    broadcast_message(client_socket, "GROUP_JOIN_SIGNAL", username=username, target_board=group)
                 elif message.startswith("GROUP_LEAVE_SIGNAL"):
-                    _, username, group = message.split(maxsplit=2)
+                    _, group, username = message.split(maxsplit=2)
                     print(f"User {username} left group {group}")
-                    broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username, group)
+                    broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username=username, target_board=group)
+                elif message.startswith("POST_SIGNAL"):
+                    _, target_board, post_summary = message.split(maxsplit=2)
+                    print(f"Post summary: {post_summary}")
+                    broadcast_message(client_socket, "POST_SIGNAL", target_board=group, post_summary=post_summary)
+                elif message.startswith("GROUP_POST_SIGNAL"):
+                    _, target_board, post_summary = message.split(maxsplit=2)
+                    print(f"Post summary: {post_summary}")
+                    broadcast_message(client_socket, "GROUP_POST_SIGNAL", target_board=target_board, post_summary=post_summary)
+
     except Exception as e:
         print(f"Error in signal thread: {e}")
     finally:
@@ -116,7 +154,7 @@ def handle_client(client_socket, public_board, private_boards):
 
                 client_socket.send((response + CRLF).encode('utf-8'))
                 # Broadcast to other users
-                broadcast_message(client_socket, 'JOIN_SIGNAL', username)
+                broadcast_message(client_socket, 'JOIN_SIGNAL', username=username, target_board=public_board)
 
             elif command == '%post':
                 # Ensure the client has provided the correct number of parameters (sender, post_date, subject, content)
@@ -134,13 +172,14 @@ def handle_client(client_socket, public_board, private_boards):
                         message_id = public_board.add_post(sender, post_date, subject, content)
                         print(f"Calling add_post with: sender={sender}, post_date={post_date}, subject={subject}")
                         
-                        response = f"Message posted with ID {message_id}."
+                        response = f"Message ID: {message_id}, Sender: {sender}, Post Date: {post_date}, Subject: {subject}"
                         print(f"[DEBUG] %post response: {response}")
+
+                        broadcast_message(client_socket, "POST_SIGNAL", target_board=public_board, post_summary=response)
                 else:
                     # Error message if the wrong number of parameters is provided
                     response = "Error: Incorrect parameters for %post. Usage: %post <subject>|<content>."
                 client_socket.send((response + CRLF).encode('utf-8'))
-
 
             elif command == '%users':
                 # Retrieve the list of users from the bulletin board.
@@ -159,7 +198,7 @@ def handle_client(client_socket, public_board, private_boards):
                     # Clear session data
                     client_sessions[client_socket]['username'] = None
                     # Broadcast to other users
-                    broadcast_message(client_socket, 'LEAVE_SIGNAL', username)
+                    broadcast_message(client_socket, 'LEAVE_SIGNAL', username=username, target_board=public_board)
                 else:
                     response = "Error: You are not currently joined to leave."
                 client_socket.send((response + CRLF).encode('utf-8'))
@@ -222,7 +261,7 @@ def handle_client(client_socket, public_board, private_boards):
                         response += group_users_active + last_two_group_messages
 
                         # Broadcast to other users
-                        broadcast_message(client_socket, 'GROUP_JOIN_SIGNAL', username, matching_group)
+                        broadcast_message(client_socket, 'GROUP_JOIN_SIGNAL', username=username, target_board=matching_group)
                     else:
                         # Error message if the group does not exist
                         response = f"Error: Group '{group_id}' does not exist."
@@ -241,7 +280,7 @@ def handle_client(client_socket, public_board, private_boards):
 
                     # Validate the sender is in the session and joined the server.
                     if not client_sessions[client_socket].get('username') or client_sessions[client_socket]['username'] != sender:
-                        response = "Error: You must join the bulletin board first using %join <username>."
+                        response = "Error: You must join the bulletin board first using %groupjoin <group_id>."
                     else:
                         # Check if the group exists in `private_boards`.
                         target_board = next((board for board in private_boards if board.group_id == group_id), None)
@@ -254,7 +293,9 @@ def handle_client(client_socket, public_board, private_boards):
                         else:
                             # Add the post to the specified group's private board.
                             message_id = target_board.post_to_group(sender, post_date, subject, content)
-                            response = f"Group message posted with ID {message_id} to group '{group_id}'."
+                            response = f"Message ID: {message_id}, Group ID: {group_id}, Sender: {sender}, Post Date: {post_date}, Subject: {subject}"
+                            broadcast_message(client_socket, 'GROUP_POST_SIGNAL', target_board=target_board, post_summary=response)
+
 
                 # Send the response back to the client.
                 client_socket.send((response + CRLF).encode('utf-8'))
@@ -300,7 +341,7 @@ def handle_client(client_socket, public_board, private_boards):
                             target_board.members.remove(username)
                             response = f"{username} has left group {group_id}."
                             # Broadcast to other users
-                            broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username, target_board)
+                            broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username=username, target_board=target_board)
                         else:
                             # User is not a member of the group.
                             response = f"Error: {username} is not a member of group '{group_id}'."
@@ -357,7 +398,7 @@ def handle_client(client_socket, public_board, private_boards):
         # Notify others that the user has disconnected
         username = client_sessions[client_socket].get('username')
         if username:
-            broadcast_message(client_socket, 'LEAVE_SIGNAL', username)
+            broadcast_message(client_socket, 'LEAVE_SIGNAL', username=username)
 
         # Clean up session data
         if client_socket in client_sessions:

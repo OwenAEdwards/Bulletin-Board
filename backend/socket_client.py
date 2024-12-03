@@ -47,11 +47,17 @@ def listen_for_signals(signal_socket):
                     _, username = message.split(maxsplit=1)
                     print(f"User left: {username}")
                 elif message.startswith("GROUP_JOIN_SIGNAL"):
-                    _, username, group = message.split(maxsplit=2)
+                    _, group, username = message.split(maxsplit=2)
                     print(f"User {username} joined group {group}")
                 elif message.startswith("GROUP_LEAVE_SIGNAL"):
-                    _, username, group = message.split(maxsplit=2)
+                    _, group, username = message.split(maxsplit=2)
                     print(f"User {username} left group {group}")
+                elif message.startswith("POST_SIGNAL"):
+                    _, post_summary = message.split(maxsplit=1)
+                    print(f"Post summary: {post_summary}")
+                elif message.startswith("GROUP_POST_SIGNAL"):
+                    _, post_summary = message.split(maxsplit=1)
+                    print(f"Post summary: {post_summary}")
     except (socket.error, Exception) as e:
         print(f"Signal listening error: {e}")
 

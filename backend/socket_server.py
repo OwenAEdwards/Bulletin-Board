@@ -9,12 +9,35 @@ CRLF = "\r\n"
 
 # Dictionary to keep track of session data for each client
 client_sessions = {}
+# Dictionary to keep track of signal session data for each client
+signal_sessions = {}
+
+def broadcast_message(sender_socket, signal_code, username):
+    """
+    Sends a message to all connected clients except the sender.
+    """
+    for client_socket, signal_socket in signal_sessions.keys():
+        if client_socket != sender_socket:  # Exclude the sender
+            try:
+                signal_socket.send((f"{signal_code} {username}" + CRLF).encode('utf-8'))
+            except socket.error as e:
+                print(f"Error sending to client: {e}")
 
 def handle_client(client_socket, public_board, private_boards):
     """
     Handles communication with a single connected client.
     Continuously listens for client commands, processes them, and sends responses back.
     """
+    # Get the address of the client_socket (host, port)
+    client_address = client_socket.getpeername()
+    client_host, client_port = client_address
+    
+    # Derive the signal socket's port (this assumes the signal port is offset by 1)
+    signal_port = client_port + 1  # Adjust this as needed for your logic
+    signal_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    signal_socket.connect((client_host, client_port))  # Connect to the signal socket
+    signal_sessions[client_socket] = signal_socket
+    
     # Initialize client session data
     client_sessions[client_socket] = {'username': None}
     try:
@@ -56,6 +79,8 @@ def handle_client(client_socket, public_board, private_boards):
                 users_active = f" Users active on this board: {public_board.list_users()}"
                 last_two_messages = f"\n{public_board.get_message_content(len(public_board.messages))}\n{public_board.get_message_content(len(public_board.messages)-1)}"
                 client_socket.send((response + users_active + last_two_messages + CRLF).encode('utf-8'))
+                # Broadcast to other users
+                broadcast_message(client_socket, 'JOIN_SIGNAL', username)
 
             elif command == '%post':
                 # Ensure the client has provided the correct number of parameters (sender, post_date, subject, content)
@@ -97,6 +122,8 @@ def handle_client(client_socket, public_board, private_boards):
                     response = f"{username} has left the bulletin board."
                     # Clear session data
                     client_sessions[client_socket]['username'] = None
+                    # Broadcast to other users
+                    broadcast_message(client_socket, 'LEAVE_SIGNAL', username)
                 else:
                     response = "Error: You are not currently joined to leave."
                 client_socket.send((response + CRLF).encode('utf-8'))
@@ -286,6 +313,11 @@ def handle_client(client_socket, public_board, private_boards):
     except Exception as e:
         print(f"Unexpected error handling client: {e}")
     finally:
+        # Notify others that the user has disconnected
+        username = client_sessions[client_socket].get('username')
+        if username:
+            broadcast_message(client_socket, 'LEAVE_SIGNAL', username)
+
         # Clean up session data
         if client_socket in client_sessions:
             del client_sessions[client_socket]

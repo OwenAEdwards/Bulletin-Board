@@ -1,4 +1,5 @@
 import socket
+import threading
 import asyncio
 from socket_protocol import format_client_command, parse_bulletin_message
 
@@ -14,11 +15,38 @@ def connect_to_server(host, port):
     # Attempt to establish a connection to the specified host and port.
     client_socket.connect((host, port))
 
+    # Second connection: dedicated signal listening
+    signal_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    signal_socket.connect((host, port+1))
+
     # If successful, print a confirmation message.
     print("Connected to the server.")
 
+    # Start a daemon thread to listen for signals
+    listener_thread = threading.Thread(target=listen_for_signals, args=(signal_socket,), daemon=True)
+    listener_thread.start()
+
     # Return the connected socket for further communication.
     return client_socket
+
+def listen_for_signals(client_socket):
+    """
+    Listens for JOIN_SIGNAL or LEAVE_SIGNAL messages from the server.
+    """
+    try:
+        while True:
+            message = client_socket.recv(1024).decode('utf-8').strip()
+            if message:
+                print(f"Received: {message}")
+                # Check for JOIN_SIGNAL or LEAVE_SIGNAL
+                if message.startswith("JOIN_SIGNAL"):
+                    _, username = message.split(maxsplit=1)
+                    print(f"User joined: {username}")
+                elif message.startswith("LEAVE_SIGNAL"):
+                    _, username = message.split(maxsplit=1)
+                    print(f"User left: {username}")
+    except (socket.error, Exception) as e:
+        print(f"Signal listening error: {e}")
 
 def send_command(client_socket, command, *params):
     """

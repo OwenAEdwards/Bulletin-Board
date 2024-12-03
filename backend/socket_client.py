@@ -17,6 +17,7 @@ def connect_to_server(host, port):
 
     # Second connection: dedicated signal listening
     signal_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    print("Host and port:",host,port)
     signal_socket.connect((host, port+1))
 
     # If successful, print a confirmation message.
@@ -29,13 +30,13 @@ def connect_to_server(host, port):
     # Return the connected socket for further communication.
     return client_socket
 
-def listen_for_signals(client_socket):
+def listen_for_signals(signal_socket):
     """
     Listens for JOIN_SIGNAL or LEAVE_SIGNAL messages from the server.
     """
     try:
         while True:
-            message = client_socket.recv(1024).decode('utf-8').strip()
+            message = signal_socket.recv(1024).decode('utf-8').strip()
             if message:
                 print(f"Received: {message}")
                 # Check for JOIN_SIGNAL or LEAVE_SIGNAL
@@ -45,6 +46,12 @@ def listen_for_signals(client_socket):
                 elif message.startswith("LEAVE_SIGNAL"):
                     _, username = message.split(maxsplit=1)
                     print(f"User left: {username}")
+                elif message.startswith("GROUP_JOIN_SIGNAL"):
+                    _, username, group = message.split(maxsplit=2)
+                    print(f"User {username} joined group {group}")
+                elif message.startswith("GROUP_LEAVE_SIGNAL"):
+                    _, username, group = message.split(maxsplit=2)
+                    print(f"User {username} left group {group}")
     except (socket.error, Exception) as e:
         print(f"Signal listening error: {e}")
 

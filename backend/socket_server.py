@@ -12,31 +12,62 @@ client_sessions = {}
 # Dictionary to keep track of signal session data for each client
 signal_sessions = {}
 
-def broadcast_message(sender_socket, signal_code, username):
+def broadcast_message(sender_socket, signal_code, username, target_board=None):
     """
     Sends a message to all connected clients except the sender.
     """
-    for client_socket, signal_socket in signal_sessions.keys():
+    for client_socket, signal_socket in signal_sessions.items():
         if client_socket != sender_socket:  # Exclude the sender
+            # Skip sending if a group (e.g. %groupjoin or %groupleave) is specified and the client is not in that group
+            if target_board and client_sessions.get(client_socket, {}).get("username") not in target_board.members:
+                continue
             try:
-                signal_socket.send((f"{signal_code} {username}" + CRLF).encode('utf-8'))
+                if target_board:
+                    # Include the group in the message
+                    signal_socket.send((f"{signal_code} {username} {target_board.group_id}" + CRLF).encode('utf-8'))
+                else:
+                    signal_socket.send((f"{signal_code} {username}" + CRLF).encode('utf-8'))
             except socket.error as e:
                 print(f"Error sending to client: {e}")
+
+def handle_signal_client(signal_socket, client_socket):
+    """
+    Handle incoming signal connections (JOIN_SIGNAL/LEAVE_SIGNAL).
+    This function only processes the JOIN/LEAVE signals and passes them to the broadcast function.
+    """
+    try:
+        while True:
+            message = signal_socket.recv(1024).decode('utf-8').strip()
+            if message:
+                print(f"Received signal: {message}")
+                # Process the signal here (JOIN/LEAVE)
+                if message.startswith("JOIN_SIGNAL"):
+                    _, username = message.split(maxsplit=1)
+                    print(f"User joined: {username}")
+                    broadcast_message(client_socket, 'JOIN_SIGNAL', username)  # Call broadcast_message to notify others
+                elif message.startswith("LEAVE_SIGNAL"):
+                    _, username = message.split(maxsplit=1)
+                    print(f"User left: {username}")
+                    broadcast_message(client_socket, 'LEAVE_SIGNAL', username)  # Call broadcast_message to notify others
+                elif message.startswith("GROUP_JOIN_SIGNAL"):
+                    _, username, group = message.split(maxsplit=2)
+                    print(f"User {username} joined group {group}")
+                    broadcast_message(client_socket, "GROUP_JOIN_SIGNAL", username, group)
+                elif message.startswith("GROUP_LEAVE_SIGNAL"):
+                    _, username, group = message.split(maxsplit=2)
+                    print(f"User {username} left group {group}")
+                    broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username, group)
+    except Exception as e:
+        print(f"Error in signal thread: {e}")
+    finally:
+        signal_socket.close()
+        del signal_sessions[client_socket]
 
 def handle_client(client_socket, public_board, private_boards):
     """
     Handles communication with a single connected client.
     Continuously listens for client commands, processes them, and sends responses back.
     """
-    # Get the address of the client_socket (host, port)
-    client_address = client_socket.getpeername()
-    client_host, client_port = client_address
-    
-    # Derive the signal socket's port (this assumes the signal port is offset by 1)
-    signal_port = client_port + 1  # Adjust this as needed for your logic
-    signal_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    signal_socket.connect((client_host, client_port))  # Connect to the signal socket
-    signal_sessions[client_socket] = signal_socket
     
     # Initialize client session data
     client_sessions[client_socket] = {'username': None}
@@ -179,6 +210,8 @@ def handle_client(client_socket, public_board, private_boards):
                         response = matching_group.join_group(username, group_id)
                         group_users_active = f" Users active in group {group_id}: {matching_group.members}"
                         last_two_group_messages = f"\n{matching_group.get_group_message(group_id, len(matching_group.messages))}\n{matching_group.get_group_message(group_id, len(matching_group.messages)-1)}"
+                        # Broadcast to other users
+                        broadcast_message(client_socket, 'GROUP_JOIN_SIGNAL', username, matching_group)
                     else:
                         # Error message if the group does not exist
                         response = f"Error: Group '{group_id}' does not exist."
@@ -255,11 +288,8 @@ def handle_client(client_socket, public_board, private_boards):
                             # Remove the user from the group.
                             target_board.members.remove(username)
                             response = f"{username} has left group {group_id}."
-                            
-                            # If the group is now empty, delete it.
-                            if not target_board.members:
-                                private_boards.remove(target_board)
-                                response += f" Group {group_id} has been deleted as it has no members."
+                            # Broadcast to other users
+                            broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username, target_board)
                         else:
                             # User is not a member of the group.
                             response = f"Error: {username} is not a member of group '{group_id}'."
@@ -334,12 +364,17 @@ def start_server(host, port):
 
     # Create a new socket using IPv4 (AF_INET) and TCP (SOCK_STREAM).
     server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    # Derive the signal socket's port (this assumes the signal port is offset by 1)
+    signal_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     # Bind the server to the specified host and port.
     server.bind((host, port))
+    signal_socket.bind((host, port+1))  # Connect to the signal socket
 
     # Start listening for incoming connections; '5' is the max number of queued connections.
     server.listen(5)
+    # Accept incoming signal connection
+    signal_socket.listen(5)
     print(f"[*] Listening on {host}:{port}")
 
     # Initialize a BulletinBoard instance to store messages from clients for the public bulletin board.
@@ -353,14 +388,19 @@ def start_server(host, port):
     while True:
         # Accept a new client connection; returns a new socket and the address of the client.
         client_socket, client_address = server.accept()
+        signal_client_socket, _ = signal_socket.accept()
+        signal_sessions[client_socket] = signal_client_socket
         print(f"[*] Accepted connection from {client_address}")
 
         # Create a new thread to handle communication with this client.
         # Each client connection is managed independently to allow simultaneous clients.
         client_handler_thread = threading.Thread(target=handle_client, args=(client_socket, public_board, private_boards))
+        # Start a thread to handle incoming signals from the client
+        signal_thread = threading.Thread(target=handle_signal_client, args=(signal_client_socket, client_socket), daemon=True)
 
         # Start the client handler thread.
         client_handler_thread.start()
+        signal_thread.start()
 
 if __name__ == "__main__":
     start_server('127.0.0.1', 5000)  # or 'localhost'

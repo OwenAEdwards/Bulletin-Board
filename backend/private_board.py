@@ -62,11 +62,11 @@ class PrivateBoard:
         """
         Retrieves a specific message from a group based on its ID.
         """
-        # Search for the message with the given ID.
+        # Search for the message with the given ID
         for message in self.messages:
             if message['id'] == int(message_id):
-                # Format the message summary similar to the public board's `%message`.
+                # Format the message summary similar to the public board's `%message`
                 return f"{message['sender']} on {message['date']}: {message['content']}"
         
-        # Return an error if the message is not found.
+        # Return an error if the message is not found
         return f"Error: Message ID '{message_id}' not found in group '{group_id}'."

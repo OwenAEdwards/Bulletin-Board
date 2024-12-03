@@ -9,10 +9,10 @@ def connect_to_server(host, port):
     """
     Establishes a connection to the server and returns the connected socket.
     """
-    # Create a socket object using IPv4 (AF_INET) and TCP (SOCK_STREAM).
+    # Create a socket object using IPv4 (AF_INET) and TCP (SOCK_STREAM)
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    # Attempt to establish a connection to the specified host and port.
+    # Attempt to establish a connection to the specified host and port
     client_socket.connect((host, port))
 
     # Second connection: dedicated signal listening
@@ -20,14 +20,14 @@ def connect_to_server(host, port):
     print("Host and port:",host,port)
     signal_socket.connect((host, port+1))
 
-    # If successful, print a confirmation message.
+    # If successful, print a confirmation message
     print("Connected to the server.")
 
     # Start a daemon thread to listen for signals
     listener_thread = threading.Thread(target=listen_for_signals, args=(signal_socket,), daemon=True)
     listener_thread.start()
 
-    # Return the connected socket for further communication.
+    # Return the connected socket for further communication
     return client_socket
 
 def listen_for_signals(signal_socket):
@@ -39,25 +39,32 @@ def listen_for_signals(signal_socket):
             message = signal_socket.recv(1024).decode('utf-8').strip()
             if message:
                 print(f"Received: {message}")
+
                 # Check for JOIN_SIGNAL or LEAVE_SIGNAL
                 if message.startswith("JOIN_SIGNAL"):
                     _, username = message.split(maxsplit=1)
                     print(f"User joined: {username}")
+
                 elif message.startswith("LEAVE_SIGNAL"):
                     _, username = message.split(maxsplit=1)
                     print(f"User left: {username}")
+
                 elif message.startswith("GROUP_JOIN_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
                     print(f"User {username} joined group {group}")
+
                 elif message.startswith("GROUP_LEAVE_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
                     print(f"User {username} left group {group}")
+
                 elif message.startswith("POST_SIGNAL"):
                     _, post_summary = message.split(maxsplit=1)
                     print(f"Post summary: {post_summary}")
+
                 elif message.startswith("GROUP_POST_SIGNAL"):
                     _, post_summary = message.split(maxsplit=1)
                     print(f"Post summary: {post_summary}")
+
     except (socket.error, Exception) as e:
         print(f"Signal listening error: {e}")
 
@@ -65,16 +72,16 @@ def send_command(client_socket, command, *params):
     """
     Sends a formatted command to the server.
     """
-    # Format the command and parameters into a single string, using format_client_command.
+    # Format the command and parameters into a single string, using format_client_command
     formatted_command = format_client_command(command, *params)
 
     # Send only if formatted_command is not empty
     if formatted_command:
-        # Encode the formatted command as a UTF-8 byte string and send it through the socket.
+        # Encode the formatted command as a UTF-8 byte string and send it through the socket
         client_socket.send(formatted_command.encode('utf-8'))
 
-        # Print the formatted command to the console for confirmation and debugging.
-        #print(f"Sent: {formatted_command.strip()}")
+        # Print the formatted command to the console for confirmation and debugging
+        #print(f"Sent: {formatted_command.strip()}") # Debugging message
     else:
         print("Attempted to send an empty command, skipping send.")
 
@@ -128,9 +135,9 @@ async def parse_command(command, client_socket):
     """
     global username
 
-    # Handle the %connect command, splitting additional parameters if provided.
+    # Handle the %connect command, splitting additional parameters if provided
     if command.startswith('%connect'):
-        params = command.split()[1:]  # Capture any additional parameters.
+        params = command.split()[1:]  # Capture any additional parameters
         if len(params) < 2:
             print("Usage: %connect <address> <port>")
             return client_socket
@@ -143,10 +150,11 @@ async def parse_command(command, client_socket):
             print(f"Failed to connect: {e}")
             client_socket = None
             return client_socket
+        
         # Combine host, port, and username into a single string, separated by spaces
         connect_params = f"{host} {port} {username}"
-        # Send the %connect command to the server with any extra parameters.
-        #print("connect_params", connect_params)
+        # Send the %connect command to the server with any extra parameters
+        #print("connect_params", connect_params) # Debugging message
         send_command(client_socket, '%connect', connect_params)
         response = await receive_response(client_socket)
         print(response)
@@ -156,6 +164,7 @@ async def parse_command(command, client_socket):
     elif command.startswith('%join'):
         # Send the %join command along with the specified username to the server.
         send_command(client_socket, '%join')
+
         # Wait for server confirmation of join
         response = await receive_response(client_socket)
         print(response)
@@ -185,7 +194,6 @@ async def parse_command(command, client_socket):
 
         # Receive the response after each command
         response = await receive_response(client_socket)
-
         print(response)
         return client_socket
 
@@ -222,54 +230,56 @@ async def parse_command(command, client_socket):
         print(response)
         return client_socket
 
-    # Handle the %exit command to close the connection and end the program.
+    # Handle the %exit command to close the connection and end the program
     elif command.startswith('%exit'):
-        # Send the %exit command to the server to close the connection.
+        # Send the %exit command to the server to close the connection
         send_command(client_socket, '%exit')
         print("Exiting.")
         response = await receive_response(client_socket)
         print(response)
-        # Close the socket connection.
+
+        # Close the socket connection
         client_socket.close()
         client_socket = False
         username = None
-        # Return False to stop further command parsing.
+
+        # Return False to stop further command parsing
         return client_socket
 
     ### Part 2 Commands ###
     
-    # Handle the %groups command to list available groups.
+    # Handle the %groups command to list available groups
     elif command.startswith('%groups'):
-        # Send the %groups command to retrieve the list of groups from the server.
+        # Send the %groups command to retrieve the list of groups from the server
         send_command(client_socket, '%groups')
         response = await receive_response(client_socket)
         print(response)
         return client_socket
 
-    # Handle the %groupjoin command to join a specified group by ID.
+    # Handle the %groupjoin command to join a specified group by ID
     elif command.startswith('%groupjoin'):
         # Split the command into parts
         parts = command.split()
 
-        # Check if Group ID is provided.
+        # Check if Group ID is provided
         if len(parts) != 2:
             print("Usage: %groupjoin <group_id>")
             return client_socket
 
         group_id = parts[1]
-        # Send the %groupjoin command with the specified group ID to join the group.
+        # Send the %groupjoin command with the specified group ID to join the group
         send_command(client_socket, '%groupjoin', group_id)
         response = await receive_response(client_socket)
         print(response)
         return client_socket
 
-    # Handle the %grouppost command, verifying the correct number of arguments.
+    # Handle the %grouppost command, verifying the correct number of arguments
     elif command.startswith('%grouppost'):
-        # Split once to separate group ID, subject, and content.
+        # Split once to separate group ID, subject, and content
         try:
             _, rest = command.split(maxsplit=1)  # Extract everything after %grouppost
             group_id, rest = rest.split(maxsplit=1)  # Separate group_id from the rest
-            subject, content = rest.split('|', maxsplit=1)  # Split subject and content by |
+            subject, content = rest.split('|', maxsplit=1)  # Split subject and content by `|` character
             group_id = group_id.strip()
             subject = subject.strip()
             content = content.strip()
@@ -277,79 +287,77 @@ async def parse_command(command, client_socket):
             print("Usage: %grouppost <group_id> <subject>|<content>")
             return client_socket
 
-        # Generate post date on the client-side for consistency.
+        # Generate post date on the client-side for consistency
         from datetime import datetime
         post_date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        # Construct the final message with the | separator intact.
+        # Construct the final message with the | separator intact
         final_message = f"%grouppost {username} {post_date} {group_id} {subject}|{content}"
 
-        # Send the %grouppost command with all parameters to the server.
+        # Send the %grouppost command with all parameters to the server
         send_command(client_socket, final_message)
 
-        # Receive the response after each command.
+        # Receive the response after each command
         response = await receive_response(client_socket)
-
         print(response)
         return client_socket
 
-    # Handle the %groupusers command to list users in a specified group.
+    # Handle the %groupusers command to list users in a specified group
     elif command.startswith('%groupusers'):
         try:
-            # Parse the command to get the group ID.
+            # Parse the command to get the group ID
             _, group_id = command.split(maxsplit=1)
             group_id = group_id.strip()
 
-            # Send the %groupusers command with the group ID to the server.
+            # Send the %groupusers command with the group ID to the server
             send_command(client_socket, f"%groupusers {group_id}")
 
-            # Receive and display the response from the server.
+            # Receive and display the response from the server
             response = await receive_response(client_socket)
             print(f"Users in group {group_id}:\n{response}")
             return client_socket
         except ValueError:
-            # Error message for invalid command format.
+            # Error message for invalid command format
             print("Usage: %groupusers <group_id>")
             return client_socket
 
-    # Handle the %groupleave command to leave a specified group.
+    # Handle the %groupleave command to leave a specified group
     elif command.startswith('%groupleave'):
         try:
-            # Parse the command to get the group ID.
+            # Parse the command to get the group ID
             _, group_id = command.split(maxsplit=1)
             group_id = group_id.strip()
 
-            # Send the %groupleave command with the group ID to the server.
+            # Send the %groupleave command with the group ID to the server
             send_command(client_socket, f"%groupleave {group_id}")
 
-            # Receive and display the response from the server.
+            # Receive and display the response from the server
             response = await receive_response(client_socket)
             print(response)
             return client_socket
         except ValueError:
-            # Error message for invalid command format.
+            # Error message for invalid command format
             print("Usage: %groupleave <group_id>")
             return client_socket
 
-    # Handle the %groupmessage command to fetch a specific message from a group.
+    # Handle the %groupmessage command to fetch a specific message from a group
     elif command.startswith('%groupmessage'):
         try:
-            # Parse group ID and message ID from the command.
+            # Parse group ID and message ID from the command
             _, group_id, message_id = command.split(maxsplit=2)
-            
-            # Validate the parameters.
             group_id = group_id.strip()
             message_id = message_id.strip()
-            
+
+            # Validate parameters
             if not group_id.isdigit() or not message_id.isdigit():
                 print("Error: Group ID and Message ID must be numeric.")
                 return client_socket
 
-            # Construct the command to send to the server.
+            # Construct the command to send to the server
             final_message = f"%groupmessage {group_id} {message_id}"
             send_command(client_socket, final_message)
 
-            # Await and print the response from the server.
+            # Await and print the response from the server
             response = await receive_response(client_socket)
             print(response)
             return client_socket
@@ -358,30 +366,30 @@ async def parse_command(command, client_socket):
             print("Usage: %groupmessage <group_id> <message_id>")
             return client_socket
 
-    # Handle unknown commands.
+    # Handle unknown commands
     else:
         print("Unknown command.")
         return client_socket
 
 async def main():
-    # Startwith no connection.
+    # Start with no connection
     client_socket = None
 
-    # Set username.
+    # Prompt user for username
     global username
     username = input("Enter username: ")
 
-    # Command loop.
+    # Command loop
     while True:
         command = input("Enter command: ")
-        # Call parse_command to handle the command and update client_socket.
+        # Call parse_command to handle the command and update client_socket
         if command.startswith('%connect') or client_socket:
             client_socket = await parse_command(command, client_socket)
         else:
             # Notify user to connect first if client_socket is None and not using %connect
             print("Please connect to the server first using %connect <address> <port>.")
             continue
-        # Break the loop if parse_command returns False (i.e., on %exit command).
+        # Break the loop if parse_command returns False (i.e., on %exit command)
         if client_socket is False:
             break
 

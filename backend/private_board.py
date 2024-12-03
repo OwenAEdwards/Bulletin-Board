@@ -10,11 +10,13 @@ class PrivateBoard:
         self.messages = [
             {'id': 1, 'sender': 'user3', 'date': '2024-12-02 16:36:44', 'subject': 'PRIVATE subj here', 'content': 'PRIVATE hello world'},
             {'id': 2, 'sender': 'user4', 'date': '2024-12-02 16:42:45', 'subject': 'another SECRET one', 'content': 'hello world again but SECRET'}
-        ]  # Messages specific to this group
-        self.message_counter = itertools.count(3)  # Unique message IDs
+        ]  # Messages specific to this group, starting with two example messages
+        self.message_counter = itertools.count(3)  # Unique message IDs (starting at 3)
 
     def join_group(self, user, group_id):
-        """Adds the user to the specified group, creating the group if it doesn't exist."""
+        """
+        Adds the user to the specified group, creating the group if it doesn't exist.
+        """
         
         # Ensure the user is not already in the group
         if user not in self.members:
@@ -39,7 +41,9 @@ class PrivateBoard:
         return message_id  # Return the unique message ID
 
     def list_group_users(self, group_id):
-        """Returns a list of users in the specified group."""
+        """
+        Returns a list of users in the specified group.
+        """
         if group_id in self.groups:
             return list(self.groups[group_id]['members'])
         return []
@@ -51,8 +55,6 @@ class PrivateBoard:
         if group_id in self.groups and user in self.groups[group_id]['members']:
             self.groups[group_id]['members'].remove(user)
             self.users[user]['groups'].remove(group_id)
-            if not self.groups[group_id]['members']:  # Remove group if empty
-                del self.groups[group_id]
             return f"{user} left group {group_id}."
         return f"{user} is not in group {group_id}."
 

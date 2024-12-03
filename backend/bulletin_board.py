@@ -14,7 +14,7 @@ class BulletinBoard:
         """Adds a new user to the bulletin board if they are not already present."""
         if user not in self.users:
             self.users[user] = {'groups': set()}
-            return f"{user} added successfully."
+            return f"{user} joined the public bulletin board."
         return f"{user} is already a member."
 
     def remove_user(self, user):

@@ -105,11 +105,16 @@ def handle_client(client_socket, public_board, private_boards):
             elif command == '%join':
                 print("Calling add_user with:", username)
                 # Add the user to the bulletin board.
-                public_board.add_user(username)
-                response = f"{username} has joined the bulletin board."
+                response = public_board.add_user(username)
                 users_active = f" Users active on this board: {public_board.list_users()}"
-                last_two_messages = f"\n{public_board.get_message_content(len(public_board.messages))}\n{public_board.get_message_content(len(public_board.messages)-1)}"
-                client_socket.send((response + users_active + last_two_messages + CRLF).encode('utf-8'))
+                last_two_messages = (
+                    f"\n{public_board.get_message_content(len(public_board.messages))}"
+                    f"\n{public_board.get_message_content(len(public_board.messages)-1)}"
+                )
+                # Concatenate additional information to the response
+                response += users_active + last_two_messages
+
+                client_socket.send((response + CRLF).encode('utf-8'))
                 # Broadcast to other users
                 broadcast_message(client_socket, 'JOIN_SIGNAL', username)
 
@@ -209,7 +214,13 @@ def handle_client(client_socket, public_board, private_boards):
                         # Attempt to join the specified group by ID
                         response = matching_group.join_group(username, group_id)
                         group_users_active = f" Users active in group {group_id}: {matching_group.members}"
-                        last_two_group_messages = f"\n{matching_group.get_group_message(group_id, len(matching_group.messages))}\n{matching_group.get_group_message(group_id, len(matching_group.messages)-1)}"
+                        last_two_group_messages = (
+                        f"\n{matching_group.get_group_message(group_id, len(matching_group.messages))}"
+                        f"\n{matching_group.get_group_message(group_id, len(matching_group.messages) - 1)}"
+                        )
+                        # Concatenate additional information to the response
+                        response += group_users_active + last_two_group_messages
+
                         # Broadcast to other users
                         broadcast_message(client_socket, 'GROUP_JOIN_SIGNAL', username, matching_group)
                     else:
@@ -218,7 +229,7 @@ def handle_client(client_socket, public_board, private_boards):
                 else:
                     # Error message if the wrong number of parameters is provided.
                     response = "Error: %groupjoin requires group ID."
-                client_socket.send((response + group_users_active + last_two_group_messages + CRLF).encode('utf-8'))
+                client_socket.send((response + CRLF).encode('utf-8'))
 
             elif command == '%grouppost':
                 # Unpack parsed parameters: sender, post_date, group_id, subject, content.

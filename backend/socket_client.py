@@ -8,6 +8,7 @@ username = None  # Global variable to track the joined username
 def connect_to_server(host, port):
     """
     Establishes a connection to the server and returns the connected socket.
+    Also establishes a daemon thread to listen for broadcasted signals.
     """
     # Create a socket object using IPv4 (AF_INET) and TCP (SOCK_STREAM)
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,38 +33,37 @@ def connect_to_server(host, port):
 
 def listen_for_signals(signal_socket):
     """
-    Listens for JOIN_SIGNAL or LEAVE_SIGNAL messages from the server.
+    Listens for signal messages from the server.
     """
     try:
         while True:
             message = signal_socket.recv(1024).decode('utf-8').strip()
             if message:
-                print(f"Received: {message}")
+                #print(f"Received: {message}")
 
-                # Check for JOIN_SIGNAL or LEAVE_SIGNAL
                 if message.startswith("JOIN_SIGNAL"):
                     _, username = message.split(maxsplit=1)
-                    print(f"User joined: {username}")
+                    print(f"\nUser joined: {username}\nEnter command: ")
 
                 elif message.startswith("LEAVE_SIGNAL"):
                     _, username = message.split(maxsplit=1)
-                    print(f"User left: {username}")
+                    print(f"\nUser left: {username}\nEnter command: ")
 
                 elif message.startswith("GROUP_JOIN_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
-                    print(f"User {username} joined group {group}")
+                    print(f"\nUser {username} joined group {group}\nEnter command: ")
 
                 elif message.startswith("GROUP_LEAVE_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
-                    print(f"User {username} left group {group}")
+                    print(f"\nUser {username} left group {group}\nEnter command: ")
 
                 elif message.startswith("POST_SIGNAL"):
                     _, post_summary = message.split(maxsplit=1)
-                    print(f"Post summary: {post_summary}")
+                    print(f"\nPost summary: {post_summary}\nEnter command: ")
 
                 elif message.startswith("GROUP_POST_SIGNAL"):
                     _, post_summary = message.split(maxsplit=1)
-                    print(f"Post summary: {post_summary}")
+                    print(f"\nPost summary: {post_summary}\nEnter command: ")
 
     except (socket.error, Exception) as e:
         print(f"Signal listening error: {e}")

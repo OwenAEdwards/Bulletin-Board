@@ -14,16 +14,7 @@ signal_sessions = {}
 
 def broadcast_message(sender_socket, signal_code, **kwargs):
     """
-    Sends a message to all connected clients except the sender.
-
-    Parameters:
-    - sender_socket: The socket of the sender to exclude from broadcasting.
-    - signal_code: A string indicating the type of broadcast (e.g., JOIN_SIGNAL, LEAVE_SIGNAL, etc.).
-    - kwargs: Additional arguments specific to the broadcast type, e.g.:
-      - 'username' for %join/%leave.
-      - 'target_board' and 'username' for %groupjoin/%groupleave.
-      - 'post_summary' for %post.
-      - 'target_board' and 'post_summary' for %grouppost.
+    Broadcasts a message to all connected clients except the sender with a specified signal.
     """
     for client_socket, signal_socket in signal_sessions.items():
         if client_socket != sender_socket:  # Exclude the sender
@@ -61,35 +52,39 @@ def broadcast_message(sender_socket, signal_code, **kwargs):
 
 def handle_signal_client(signal_socket, client_socket):
     """
-    Handle incoming signal connections (JOIN_SIGNAL/LEAVE_SIGNAL).
-    This function only processes the JOIN/LEAVE signals and passes them to the broadcast function.
+    Handle incoming signal connections and passes them to the broadcast function.
     """
     try:
         while True:
             message = signal_socket.recv(1024).decode('utf-8').strip()
             if message:
                 print(f"Received signal: {message}")
-                # Process the signal here (JOIN/LEAVE)
+
                 if message.startswith("JOIN_SIGNAL"):
                     _, target_board, username = message.split(maxsplit=2)
                     print(f"User joined: {username}")
-                    broadcast_message(client_socket, 'JOIN_SIGNAL', target_board, username=username)  # Call broadcast_message to notify others
+                    broadcast_message(client_socket, 'JOIN_SIGNAL', target_board, username=username)
+
                 elif message.startswith("LEAVE_SIGNAL"):
                     _, target_board, username = message.split(maxsplit=2)
                     print(f"User left: {username}")
-                    broadcast_message(client_socket, 'LEAVE_SIGNAL', target_board=target_board, username=username)  # Call broadcast_message to notify others
+                    broadcast_message(client_socket, 'LEAVE_SIGNAL', target_board=target_board, username=username)
+
                 elif message.startswith("GROUP_JOIN_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
                     print(f"User {username} joined group {group}")
                     broadcast_message(client_socket, "GROUP_JOIN_SIGNAL", username=username, target_board=group)
+
                 elif message.startswith("GROUP_LEAVE_SIGNAL"):
                     _, group, username = message.split(maxsplit=2)
                     print(f"User {username} left group {group}")
                     broadcast_message(client_socket, 'GROUP_LEAVE_SIGNAL', username=username, target_board=group)
+                    
                 elif message.startswith("POST_SIGNAL"):
                     _, target_board, post_summary = message.split(maxsplit=2)
                     print(f"Post summary: {post_summary}")
                     broadcast_message(client_socket, "POST_SIGNAL", target_board=group, post_summary=post_summary)
+
                 elif message.startswith("GROUP_POST_SIGNAL"):
                     _, target_board, post_summary = message.split(maxsplit=2)
                     print(f"Post summary: {post_summary}")
@@ -103,7 +98,6 @@ def handle_signal_client(signal_socket, client_socket):
 
 def handle_client(client_socket, public_board, private_boards):
     """
-    Handles communication with a single connected client.
     Continuously listens for client commands, processes them, and sends responses back.
     """
     
@@ -175,6 +169,7 @@ def handle_client(client_socket, public_board, private_boards):
                         response = f"Message ID: {message_id}, Sender: {sender}, Post Date: {post_date}, Subject: {subject}"
                         print(f"[DEBUG] %post response: {response}")
 
+                        # Broadcast to other users
                         broadcast_message(client_socket, "POST_SIGNAL", target_board=public_board, post_summary=response)
                 else:
                     # Error message if the wrong number of parameters is provided
@@ -294,6 +289,7 @@ def handle_client(client_socket, public_board, private_boards):
                             # Add the post to the specified group's private board
                             message_id = target_board.post_to_group(sender, post_date, subject, content)
                             response = f"Message ID: {message_id}, Group ID: {group_id}, Sender: {sender}, Post Date: {post_date}, Subject: {subject}"
+                            # Broadcast to other users
                             broadcast_message(client_socket, 'GROUP_POST_SIGNAL', target_board=target_board, post_summary=response)
 
 

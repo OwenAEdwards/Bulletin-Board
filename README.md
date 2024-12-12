@@ -72,7 +72,7 @@ python3 .\socket_server.py
 
 ## Project Structure
 
-### backend
+### Application Files
 
 - `bulletin_board.py`: Core logic for the bulletin board system. Handles the structure of groups, messages, and user management within the application. This script interacts with the socket server to manage user activities.
 - `private_board.py`: Core logic for the private chat rooms. Similar functionality to main bulletin board but in separate file for separation of concern.
@@ -80,7 +80,7 @@ python3 .\socket_server.py
 - `socket_protocol.py`: Defines the message protocol for communication between the client and the server. This handles message formatting and parsing.
 - `socket_server.py`: Manages the socket server setup, including binding the socket to a host and port, accepting connections, and dispatching messages between clients and the `bulletin_board.py`.
 
-#### backend/tests
+#### Test Files
 
 - `test_bulletin_board.py`: Test cases for validating public bulletin board system logic.
 - `test_private_board.py`: Test cases for validating private bulletin board system logic.
